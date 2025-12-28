@@ -13,9 +13,9 @@ def main():
     learning_rate = 1e-2
     weight_decay = 3e-3
     number_samples = 50000
-    epochs = 40
+    epochs = 1
     hidden_layer_size = 512
-    model_filename = f"fixed_model_{learning_rate}_{number_samples}_{hidden_layer_size}.pkl"
+    model_filename = f"fixed_model_{learning_rate:.1e}_{number_samples}_{hidden_layer_size}_{epochs}.pkl"
 
     if sum([args.train, args.evaluate, args.predict]) > 1:
         raise ValueError("Use only one of --train, --evaluate or --predict")

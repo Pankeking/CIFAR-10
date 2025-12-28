@@ -94,7 +94,7 @@ class Model:
         self.weights = weights
 
     def save(self, filepath: str) -> None:
-        model_directory = os.path.dirname("models")
+        model_directory = "models"
         with open(os.path.join(model_directory, filepath), 'wb') as f:
             pickle.dump({
                 'weights': self.weights,
@@ -112,12 +112,12 @@ class Model:
         print(f"Model saved to {os.path.join(model_directory, filepath)}")
 
     def save_weights_only(self, filepath: str) -> None:
-        model_directory = os.path.dirname("models")
+        model_directory = "models"
         np.savez_compressed(os.path.join(model_directory, filepath), weights=self.weights)
         print(f"Weights saved to {os.path.join(model_directory, filepath)}")
 
     def load(self, filepath: str, rebuild_data: bool = False) -> None:
-        model_directory = os.path.dirname("models")
+        model_directory = "models"
         with open(os.path.join(model_directory, filepath), 'rb') as f:
             data = pickle.load(f)
         self.weights = data['weights']

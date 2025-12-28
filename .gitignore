@@ -8,3 +8,10 @@ wheels/
 
 # Virtual environments
 .venv
+
+tiny-imagenet-200/
+cifar-10-batches-py/
+cifar-10-batches-bin/
+
+models/*.pkl
+models/*.npz
