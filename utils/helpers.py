@@ -1,21 +1,23 @@
 import pickle
 import os
 import numpy as np
+from utils.losses import Losses
 
 CIFAR10_CLASSES = [
     "airplane", "automobile", "bird", "cat", "deer",
     "dog", "frog", "horse", "ship", "truck"
 ]
 
-def print_metrics(y_prediction: np.ndarray, y_actual: np.ndarray, loss: float):
-    pred_classes = np.argmax(y_prediction, axis=1)          # shape (64,)
-    true_classes = np.argmax(y_actual, axis=1)
+def print_metrics(logits: np.ndarray, labels: np.ndarray, losses: Losses):
+    loss = losses.loss_fn(logits, labels)
+    pred_classes = np.argmax(logits, axis=1)          # shape (64,)
+    true_classes = np.argmax(labels, axis=1)
     class_diff = np.abs(pred_classes - true_classes)        # (64,)
     accuracy = np.mean(class_diff == 0)
     print(f"Accuracy: {accuracy}")
     print(f"Loss: {loss}")
     print("Class diff:", class_diff)
-    print("First sample logits:", y_prediction[0])
+    print("First sample logits:", logits[0])
 
 def load_cifar_batch(path: str) -> tuple[np.ndarray, np.ndarray]:
     with open(path, "rb") as f:

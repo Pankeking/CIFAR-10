@@ -14,9 +14,12 @@ def relu(x: np.ndarray) -> np.ndarray:
 def relu_derivative(x: np.ndarray) -> np.ndarray:
     return np.where(x > 0, 1, 0)
 
-def mean_squared_error(y_prediction: np.ndarray, y_actual: np.ndarray) -> float:
-    difference = y_prediction - y_actual # (64, 10) - (64, 10) = (64, 10)
+def mean_squared_error_loss(logits: np.ndarray, labels: np.ndarray) -> float:
+    difference = logits - labels
     return np.mean(np.square(difference)) # scalar
+
+def mean_squared_error_grad(logits: np.ndarray, labels: np.ndarray) -> np.ndarray:
+    return 2 * (logits - labels)
 
 def softmax(logits: np.ndarray) -> np.ndarray:
     logits_shift = logits - np.max(logits, axis=1, keepdims=True)
@@ -24,9 +27,13 @@ def softmax(logits: np.ndarray) -> np.ndarray:
     probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
     return probs
 
-def cross_entropy_loss(y_prediction: np.ndarray, y_actual: np.ndarray) -> float:
-    probs = softmax(y_prediction)
+def cross_entropy_loss(logits: np.ndarray, labels: np.ndarray) -> float:
+    probs = softmax(logits)
     eps = 1e-12
     log_probs = np.log(probs + eps)
-    loss = -np.sum(y_actual * log_probs) / y_prediction.shape[0]
+    loss = -np.sum(labels * log_probs) / labels.shape[0]
     return loss
+
+def cross_entropy_grad(logits: np.ndarray, labels: np.ndarray) -> np.ndarray:
+    probs = softmax(logits)
+    return (probs - labels) / labels.shape[0]

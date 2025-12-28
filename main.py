@@ -1,6 +1,7 @@
 import argparse
 from model import Model
 from view import run_view
+from utils.losses import Losses, LossMode
 
 def main():
     args = argparse.ArgumentParser()
@@ -13,7 +14,7 @@ def main():
     learning_rate = 1e-2
     weight_decay = 3e-3
     number_samples = 50000
-    epochs = 1
+    epochs = 40
     hidden_layer_size = 512
     model_filename = f"fixed_model_{learning_rate:.1e}_{number_samples}_{hidden_layer_size}_{epochs}.pkl"
 
@@ -23,8 +24,9 @@ def main():
         model = Model(
             learning_rate=learning_rate,
             weight_decay=weight_decay,
-            loss_mode="cross_entropy",
-            activation_function="relu"
+            activation_function="relu",
+            optimizer="adam",
+            losses=Losses(loss_mode=LossMode.CROSS_ENTROPY),
         )
         model.create_model(
             architecture="cifar10",
@@ -38,6 +40,7 @@ def main():
             metrics=True
         )
         model.save(model_filename)
+        model.evaluate()
 
     elif args.evaluate:
         model = Model()

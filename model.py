@@ -2,14 +2,34 @@ import pickle
 import os
 import numpy as np
 from utils.helpers import print_metrics, load_cifar10, CIFAR10_CLASSES
-from utils.math import glorot_uniform, sigmoid, relu, relu_derivative, mean_squared_error, cross_entropy_loss, softmax
+from utils.math import glorot_uniform, sigmoid, relu, relu_derivative, softmax
+from utils.losses import Loss, LossMode
 
 class Model:
-    def __init__(self, learning_rate: float = 1e-2, weight_decay: float = 1e-3, loss_mode: str = "cross_entropy", activation_function: str = "relu"):
+    def __init__(self,
+        learning_rate: float = 1e-2,
+        weight_decay: float = 1e-3,
+        loss: Loss = Loss(loss_mode=LossMode.CROSS_ENTROPY),
+        activation_function: str = "relu",
+        optimizer: str = "adam",
+        beta1: float = 0.9,
+        beta2: float = 0.999,
+        epsilon: float = 1e-8
+    ):
         self.input_data_shape: np.ndarray | None = None
         self.output_data_shape: np.ndarray | None = None
         self.weights: list[np.ndarray] | None = None
         self.y_prediction: np.ndarray | None = None
+        self.learning_rate: float = learning_rate
+        self.weight_decay: float = weight_decay
+        self.loss: Loss = loss
+        self.optimizer: str = optimizer
+        self.beta1: float = beta1
+        self.beta2: float = beta2
+        self.epsilon: float = epsilon
+        self.m = None
+        self.v = None
+        self.t = 0
         
         if activation_function == "relu":
             self.activation_function = relu
@@ -17,10 +37,6 @@ class Model:
             self.activation_function = sigmoid
         else:
             raise ValueError(f"Invalid activation function: {activation_function}")
-
-        self.learning_rate: float | None = learning_rate
-        self.weight_decay: float | None = weight_decay
-        self.loss_mode: str | None = loss_mode
 
     def update_weights(self, weights: list[np.ndarray]) -> None:
         self.weights = weights
@@ -37,17 +53,6 @@ class Model:
             self.build_cifar10_network(number_samples, hidden_layer_size)
         else:
             raise ValueError(f"Invalid architecture: {architecture}")
-
-    def loss_function(self, y_prediction: np.ndarray = None, y_actual: np.ndarray = None) -> float:
-        y_prediction = y_prediction if y_prediction is not None else self.y_prediction
-        y_actual = y_actual if y_actual is not None else self.output_data_shape
-
-        if self.loss_mode == "mse": # mean squared error
-            return mean_squared_error(y_prediction, y_actual)
-        elif self.loss_mode == "cross_entropy":
-            return cross_entropy_loss(y_prediction, y_actual)
-        else:
-            raise ValueError(f"Invalid loss mode: {self.loss_mode}")
 
     def build_cifar10_network(self, number_samples: int, hidden_layer_size: int = 512) -> None:
         x_train, y_train, x_test, y_test = load_cifar10("cifar-10-batches-py")
@@ -74,6 +79,10 @@ class Model:
         self.output_data_shape = y_onehot
         self.weights = weights
 
+        self.m = [np.zeros_like(weight) for weight in weights]
+        self.v = [np.zeros_like(weight) for weight in weights]
+        self.t = 0
+
     def build_hardcode_network(self) -> None:
         print("Hardcoding layer sizes...")
         number_samples = 10000
@@ -93,6 +102,10 @@ class Model:
         self.output_data_shape = np.random.randn(number_samples, output_dim)
         self.weights = weights
 
+        self.m = [np.zeros_like(weight) for weight in weights]
+        self.v = [np.zeros_like(weight) for weight in weights]
+        self.t = 0
+
     def save(self, filepath: str) -> None:
         model_directory = "models"
         with open(os.path.join(model_directory, filepath), 'wb') as f:
@@ -100,14 +113,18 @@ class Model:
                 'weights': self.weights,
                 'input_data_shape': self.input_data_shape,
                 'output_data_shape': self.output_data_shape,
-                'loss_mode': self.loss_mode,
+                'loss_mode': self.loss.loss_mode,
                 'activation_function_name': (
                     'relu' if self.activation_function is relu
                     else 'sigmoid' if self.activation_function is sigmoid
                     else None
                 ),
                 'learning_rate': self.learning_rate,
-                'weight_decay': self.weight_decay
+                'weight_decay': self.weight_decay,
+                'optimizer': self.optimizer,
+                'beta1': self.beta1,
+                'beta2': self.beta2,
+                'epsilon': self.epsilon
             }, f)
         print(f"Model saved to {os.path.join(model_directory, filepath)}")
 
@@ -125,7 +142,11 @@ class Model:
         self.output_data_shape = data['output_data_shape']
         self.learning_rate = data.get('learning_rate', 1e-2)
         self.weight_decay = data.get('weight_decay', 1e-3)
-        self.loss_mode = data.get('loss_mode', "cross_entropy")
+        self.loss = Loss(loss_mode=data.get('loss_mode', LossMode.CROSS_ENTROPY))
+        self.optimizer = data.get('optimizer', "adam")
+        self.beta1 = data.get('beta1', 0.9)
+        self.beta2 = data.get('beta2', 0.999)
+        self.epsilon = data.get('epsilon', 1e-8)
         activation_function_name = data.get('activation_function_name', 'relu')
         if activation_function_name == "relu":
             self.activation_function = relu
@@ -137,10 +158,8 @@ class Model:
             
         if rebuild_data:  # Rebuild if data shapes missing
             self.create_model("cifar10")
-        
         self.y_prediction = None  # Reset prediction cache
 
-    
 
     def set_activation_function(self, strategy: str) -> None:
         if strategy == "sigmoid":
@@ -160,7 +179,11 @@ class Model:
         else:
             raise ValueError(f"Invalid architecture: {architecture}")
         self.y_prediction = self._predict_full()
-        print_metrics(self.y_prediction, self.output_data_shape, self.loss_function())
+        print_metrics(
+            self.y_prediction,
+            self.output_data_shape,
+            self.loss
+        )
         return 0
     
     
@@ -190,7 +213,6 @@ class Model:
                         layer_input = hidden_activations[layer_idx - 1] # output of previous layer
                     
                     linear_output = layer_input.dot(weight)
-
                     # linear_output = (linear_output - np.mean(linear_output, axis=0,keepdims=True)) / (np.std(linear_output, axis=0, keepdims=True) + 1e-8)
 
                     if layer_idx < len(self.weights) - 1:
@@ -203,13 +225,14 @@ class Model:
                 # backward pass
                 new_weights = []
                 logits = hidden_activations[-1]
-                if self.loss_mode == "mse":
-                    gradient_next = 2 * (logits - y_batch) # (64, 10)
-                elif self.loss_mode == "cross_entropy":
-                    probs = softmax(logits) # (64, 10)
-                    gradient_next = (probs - y_batch) / y_batch.shape[0]
-                else:
-                    raise ValueError("Unknown loss_mode")
+                gradient_next = self.loss.gradient_fn(logits, y_batch)
+                # if self.loss_mode == "mse":
+                #     gradient_next = 2 * (logits - y_batch) # (64, 10)
+                # elif self.loss_mode == "cross_entropy":
+                #     probs = softmax(logits) # (64, 10)
+                #     gradient_next = (probs - y_batch) / y_batch.shape[0]
+                # else:
+                #     raise ValueError("Unknown loss_mode")
 
                 for idx in reversed(range(len(self.weights))):
                     if idx == 0:
@@ -223,7 +246,9 @@ class Model:
                         gradient_hidden = gradient_next.dot(self.weights[idx].T)
                         relu_grad = relu_derivative(hidden_activations[idx - 1])
                         gradient_next = gradient_hidden * relu_grad
-                    new_weights.insert(0, self.weights[idx] - (lr * gradient_weight))
+                    
+                    new_weight = self.weights[idx] - (lr * gradient_weight)
+                    new_weights.insert(0, new_weight)
                     
 
                 self.update_weights(new_weights)
@@ -233,7 +258,11 @@ class Model:
             if metrics:
                 self.y_prediction = self._predict_full()
                 print(f"Epoch {epoch}:")
-                print_metrics(self.y_prediction, self.output_data_shape, self.loss_function())
+                print_metrics(
+                    self.y_prediction,
+                    self.output_data_shape,
+                    self.loss
+                )
 
         return 0
 
@@ -271,7 +300,11 @@ class Model:
 
             if metrics and epoch % 100 == 0:
                 print(f"Epoch {epoch}:")
-                print_metrics(self.y_prediction, self.output_data_shape, self.loss_function(self.y_prediction, self.output_data_shape))
+                print_metrics(
+                    self.y_prediction,
+                    self.output_data_shape,
+                    self.loss
+                )
 
         return 0
 
