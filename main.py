@@ -1,7 +1,7 @@
 import argparse
 from model import Model
 from view import run_view
-from utils.losses import Losses, LossMode
+from utils.losses import Loss, LossMode
 
 def main():
     args = argparse.ArgumentParser()
@@ -26,7 +26,7 @@ def main():
             weight_decay=weight_decay,
             activation_function="relu",
             optimizer="adam",
-            losses=Losses(loss_mode=LossMode.CROSS_ENTROPY),
+            loss=Loss(loss_mode=LossMode.CROSS_ENTROPY),
         )
         model.create_model(
             architecture="cifar10",
