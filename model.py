@@ -1,17 +1,18 @@
 import pickle
 import os
 import numpy as np
-from utils.helpers import print_metrics, load_cifar10, CIFAR10_CLASSES
-from utils.math import glorot_uniform, sigmoid, relu, relu_derivative, softmax
+from utils.helpers import print_metrics, load_cifar10
+from utils.math import glorot_uniform, sigmoid, relu, relu_derivative
 from utils.losses import Loss, LossMode
+from utils.optimizers import Optimizer, OptimizerMode
 
 class Model:
     def __init__(self,
         learning_rate: float = 1e-2,
         weight_decay: float = 1e-3,
-        loss: Loss = Loss(loss_mode=LossMode.CROSS_ENTROPY),
+        loss: Loss = Loss(),
         activation_function: str = "relu",
-        optimizer: str = "adam",
+        optimizer: Optimizer = Optimizer(),
         beta1: float = 0.9,
         beta2: float = 0.999,
         epsilon: float = 1e-8
@@ -20,13 +21,13 @@ class Model:
         self.output_data_shape: np.ndarray | None = None
         self.weights: list[np.ndarray] | None = None
         self.y_prediction: np.ndarray | None = None
-        self.learning_rate: float = learning_rate
-        self.weight_decay: float = weight_decay
-        self.loss: Loss = loss
-        self.optimizer: str = optimizer
-        self.beta1: float = beta1
-        self.beta2: float = beta2
-        self.epsilon: float = epsilon
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+        self.loss = loss
+        self.optimizer = optimizer
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.epsilon = epsilon
         self.m = None
         self.v = None
         self.t = 0
@@ -38,21 +39,17 @@ class Model:
         else:
             raise ValueError(f"Invalid activation function: {activation_function}")
 
-    def update_weights(self, weights: list[np.ndarray]) -> None:
-        self.weights = weights
+    def update_weights(self, weights: list[np.ndarray], gradients: list[np.ndarray]) -> None:
+        self.weights = self.optimizer.update_weights(weights, gradients)
 
     def set_learning(self, learning_rate: float, weight_decay: float) -> None:
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
   
-    def create_model(self, architecture: str, number_samples: int, hidden_layer_size: int = 512) -> None:
-        print(f"Creating model with architecture: {architecture}")
-        if architecture == "hardcode":
-            self.build_hardcode_network()
-        elif architecture == "cifar10":
-            self.build_cifar10_network(number_samples, hidden_layer_size)
-        else:
-            raise ValueError(f"Invalid architecture: {architecture}")
+    def create_model(self, number_samples: int, hidden_layer_size: int = 512) -> None:
+        print(f"Creating model with CIFAR-10 dataset")
+        self.build_cifar10_network(number_samples, hidden_layer_size)
+
 
     def build_cifar10_network(self, number_samples: int, hidden_layer_size: int = 512) -> None:
         x_train, y_train, x_test, y_test = load_cifar10("cifar-10-batches-py")
@@ -83,28 +80,6 @@ class Model:
         self.v = [np.zeros_like(weight) for weight in weights]
         self.t = 0
 
-    def build_hardcode_network(self) -> None:
-        print("Hardcoding layer sizes...")
-        number_samples = 10000
-        dimension_input = 32 * 32 * 3
-        hidden_layer_size = 1024
-        dimension_output = 10
-        layer_sizes = [dimension_input, hidden_layer_size, hidden_layer_size // 8, dimension_output]
-        
-        weights = []
-        for in_dim, out_dim in zip(layer_sizes[:-1], layer_sizes[1:]):
-            weights.append(glorot_uniform(in_dim, out_dim))
-        
-        input_dim = layer_sizes[0]
-        output_dim = layer_sizes[-1]
-
-        self.input_data_shape = np.random.randn(number_samples, input_dim)
-        self.output_data_shape = np.random.randn(number_samples, output_dim)
-        self.weights = weights
-
-        self.m = [np.zeros_like(weight) for weight in weights]
-        self.v = [np.zeros_like(weight) for weight in weights]
-        self.t = 0
 
     def save(self, filepath: str) -> None:
         model_directory = "models"
@@ -121,7 +96,7 @@ class Model:
                 ),
                 'learning_rate': self.learning_rate,
                 'weight_decay': self.weight_decay,
-                'optimizer': self.optimizer,
+                'optimizer': self.optimizer.optimizer_mode,
                 'beta1': self.beta1,
                 'beta2': self.beta2,
                 'epsilon': self.epsilon
@@ -143,7 +118,7 @@ class Model:
         self.learning_rate = data.get('learning_rate', 1e-2)
         self.weight_decay = data.get('weight_decay', 1e-3)
         self.loss = Loss(loss_mode=data.get('loss_mode', LossMode.CROSS_ENTROPY))
-        self.optimizer = data.get('optimizer', "adam")
+        self.optimizer = Optimizer(optimizer_mode=data.get('optimizer', OptimizerMode.SGD))
         self.beta1 = data.get('beta1', 0.9)
         self.beta2 = data.get('beta2', 0.999)
         self.epsilon = data.get('epsilon', 1e-8)
@@ -169,32 +144,23 @@ class Model:
         else:
             raise ValueError(f"Invalid activation function: {strategy}")
 
-    def train(self, architecture: str, epochs: int, batch_size: int, metrics: bool = False):
-        if architecture == "hardcode":
-            print(f"Training model with a hardcoded network")
-            self.train_hardcode(epochs, metrics)
-        elif architecture == "FCN":
-            print(f"Training model with a fully connected network")
-            self.train_FCN(epochs, batch_size, metrics)
-        else:
-            raise ValueError(f"Invalid architecture: {architecture}")
+    def train(self, epochs: int, batch_size: int, metrics: bool = False):
+        self._train(epochs, batch_size, metrics)
         self.y_prediction = self._predict_full()
         print_metrics(
             self.y_prediction,
             self.output_data_shape,
             self.loss
         )
-        return 0
     
     
-    def train_FCN(self, epochs: int, batch_size: int = 256, metrics: bool = False):
+    def _train(self, epochs: int, batch_size: int = 256, metrics: bool = False):
         n = self.input_data_shape.shape[0]
         for epoch in range(epochs):
-            start_epoch_decay = 30
-            if epoch < start_epoch_decay:
-                lr = self.learning_rate
-            else:
-                lr = self.learning_rate * (0.99 ** (epoch - start_epoch_decay))
+            # learning rate decay
+            self.optimizer.step_epoch()
+
+            # shuffle data
             indices = np.random.permutation(n)
             for i in range(0, n, batch_size):
                 batch_idx = indices[i:i+batch_size]
@@ -202,9 +168,6 @@ class Model:
                 y_batch = self.output_data_shape[batch_idx]
 
                 # forward pass
-                # numpy.dot inverts (transposes) the order of the matrices row/column wise
-                # and then multiplies the matrices
-                # x.dot(y) is equivalent to x^T * y
                 hidden_activations = []
                 for layer_idx, weight in enumerate(self.weights):
                     if layer_idx == 0:
@@ -213,27 +176,18 @@ class Model:
                         layer_input = hidden_activations[layer_idx - 1] # output of previous layer
                     
                     linear_output = layer_input.dot(weight)
-                    # linear_output = (linear_output - np.mean(linear_output, axis=0,keepdims=True)) / (np.std(linear_output, axis=0, keepdims=True) + 1e-8)
 
                     if layer_idx < len(self.weights) - 1:
                         output = self.activation_function(linear_output)
                     else:
                         output = linear_output
-
                     hidden_activations.append(output)
                 
                 # backward pass
                 new_weights = []
+                gradients = []
                 logits = hidden_activations[-1]
                 gradient_next = self.loss.gradient_fn(logits, y_batch)
-                # if self.loss_mode == "mse":
-                #     gradient_next = 2 * (logits - y_batch) # (64, 10)
-                # elif self.loss_mode == "cross_entropy":
-                #     probs = softmax(logits) # (64, 10)
-                #     gradient_next = (probs - y_batch) / y_batch.shape[0]
-                # else:
-                #     raise ValueError("Unknown loss_mode")
-
                 for idx in reversed(range(len(self.weights))):
                     if idx == 0:
                         layer_input = x_batch
@@ -247,12 +201,11 @@ class Model:
                         relu_grad = relu_derivative(hidden_activations[idx - 1])
                         gradient_next = gradient_hidden * relu_grad
                     
-                    new_weight = self.weights[idx] - (lr * gradient_weight)
-                    new_weights.insert(0, new_weight)
-                    
+                    gradients.insert(0, gradient_weight)
+                    # new_weight = self.weights[idx] - (lr * gradient_weight)
+                    # new_weights.insert(0, new_weight)
 
-                self.update_weights(new_weights)
-
+                self.update_weights(self.weights, gradients)
             
                 self.y_prediction = hidden_activations[-1]
             if metrics:
@@ -264,49 +217,6 @@ class Model:
                     self.loss
                 )
 
-        return 0
-
-
-    def train_hardcode(self, epochs: int, metrics: bool = False):
-        for epoch in range(epochs):
-            hidden_linear = self.input_data_shape.dot(self.weights[0]) # (64, 1000) * (1000, 100) = (64, 100)
-            hidden_activation = self.activation_function(hidden_linear) # hidden layer activation (64, 100)
-
-            hidden_linear_2 = hidden_activation.dot(self.weights[1])
-            hidden_activation_2 = self.activation_function(hidden_linear_2)
-
-            logits = hidden_activation_2.dot(self.weights[2]) # (64, 100) * (100, 10) = (64, 10)
-            # y_prediction = sigmoid(logits) # output layer activation (64, 10)
-            # we can apply softmax to the logits to get the probability distribution
-            self.y_prediction = logits
-
-            new_weights = []
-
-            gradient_y_prediction = 2 * (self.y_prediction - self.output_data_shape) # (64, 10) - (64, 10) = (64, 10)
-
-            gradient_weights_3 = hidden_activation_2.T.dot(gradient_y_prediction) # (100, 64) * (64, 10) = (100, 10)
-            gradient_hidden_activation_2 = gradient_y_prediction.dot(self.weights[2].T)
-            gradient_hidden_linear_2 = gradient_hidden_activation_2 * hidden_activation_2 * (1 - hidden_activation_2)
-            gradient_weights_2 = hidden_activation.T.dot(gradient_hidden_linear_2)
-            gradient_hidden_activation = gradient_hidden_linear_2.dot(self.weights[1].T)
-            gradient_hidden_linear = gradient_hidden_activation * hidden_activation * (1 - hidden_activation)
-            gradient_weights_1 = self.input_data_shape.T.dot(gradient_hidden_linear)
-
-            new_weights.append(self.weights[0] - (self.learning_rate * gradient_weights_1))
-            new_weights.append(self.weights[1] - (self.learning_rate * gradient_weights_2))
-            new_weights.append(self.weights[2] - (self.learning_rate * gradient_weights_3))
-
-            self.update_weights(new_weights)
-
-            if metrics and epoch % 100 == 0:
-                print(f"Epoch {epoch}:")
-                print_metrics(
-                    self.y_prediction,
-                    self.output_data_shape,
-                    self.loss
-                )
-
-        return 0
 
     def _predict_full(self) -> np.ndarray:
         """Forward pass on full dataset for final metrics."""

@@ -2,8 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from model import Model
-from utils.helpers import CIFAR10_CLASSES, load_cifar10
+from utils.helpers import load_cifar10
 from utils.math import softmax
+
+CIFAR10_CLASSES = [
+    "airplane", "automobile", "bird", "cat", "deer",
+    "dog", "frog", "horse", "ship", "truck"
+]
 
 def run_view(model_filename: str, start_index: int = 0) -> None:
     model = Model()

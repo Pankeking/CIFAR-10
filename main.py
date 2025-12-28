@@ -2,6 +2,7 @@ import argparse
 from model import Model
 from view import run_view
 from utils.losses import Loss, LossMode
+from utils.optimizers import Optimizer, OptimizerMode
 
 def main():
     args = argparse.ArgumentParser()
@@ -16,7 +17,14 @@ def main():
     number_samples = 50000
     epochs = 40
     hidden_layer_size = 512
-    model_filename = f"fixed_model_{learning_rate:.1e}_{number_samples}_{hidden_layer_size}_{epochs}.pkl"
+    loss_mode = LossMode.CROSS_ENTROPY
+    optimizer_mode = OptimizerMode.SGD
+    model_filename = f"fixed_model_{learning_rate:.1e}_{loss_mode.value}_{number_samples}_{optimizer_mode.value}_{hidden_layer_size}_{epochs}.pkl"
+    optimizer = Optimizer(
+            optimizer_mode=optimizer_mode,
+            start_epoch_decay=30,
+            decay_rate=0.99
+        )
 
     if sum([args.train, args.evaluate, args.predict]) > 1:
         raise ValueError("Use only one of --train, --evaluate or --predict")
@@ -25,16 +33,14 @@ def main():
             learning_rate=learning_rate,
             weight_decay=weight_decay,
             activation_function="relu",
-            optimizer="adam",
-            loss=Loss(loss_mode=LossMode.CROSS_ENTROPY),
+            optimizer=optimizer,
+            loss=Loss(loss_mode=loss_mode),
         )
         model.create_model(
-            architecture="cifar10",
             number_samples=number_samples,
             hidden_layer_size=hidden_layer_size
         )
         model.train(
-            architecture="FCN",
             epochs=epochs,
             batch_size=512,
             metrics=True
@@ -45,8 +51,8 @@ def main():
     elif args.evaluate:
         model = Model()
         model.load(model_filename)
-        test_accuracy = model.evaluate()
-        train_accuracy = model.evaluate_on_train()
+        model.evaluate()
+        model.evaluate_on_train()
     elif args.predict:
         run_view(model_filename, start_index=args.start)
     else:
