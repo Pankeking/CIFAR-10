@@ -1,7 +1,7 @@
 import pickle
 import os
 import numpy as np
-from utils.helpers import print_metrics, load_cifar10
+from utils.helpers import print_metrics, load_cifar10, CIFAR10_CLASSES
 from utils.math import glorot_uniform, sigmoid, relu, relu_derivative, mean_squared_error, cross_entropy_loss, softmax
 
 class Model:
@@ -29,14 +29,14 @@ class Model:
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
   
-    def create_model(self, strategy: str, number_samples: int) -> None:
-        print(f"Creating model with strategy: {strategy}")
-        if strategy == "hardcode":
+    def create_model(self, architecture: str, number_samples: int, hidden_layer_size: int = 512) -> None:
+        print(f"Creating model with architecture: {architecture}")
+        if architecture == "hardcode":
             self.build_hardcode_network()
-        elif strategy == "cifar10":
-            self.build_cifar10_network(number_samples)
+        elif architecture == "cifar10":
+            self.build_cifar10_network(number_samples, hidden_layer_size)
         else:
-            raise ValueError(f"Invalid strategy: {strategy}")
+            raise ValueError(f"Invalid architecture: {architecture}")
 
     def loss_function(self, y_prediction: np.ndarray = None, y_actual: np.ndarray = None) -> float:
         y_prediction = y_prediction if y_prediction is not None else self.y_prediction
@@ -49,7 +49,7 @@ class Model:
         else:
             raise ValueError(f"Invalid loss mode: {self.loss_mode}")
 
-    def build_cifar10_network(self, number_samples: int) -> None:
+    def build_cifar10_network(self, number_samples: int, hidden_layer_size: int = 512) -> None:
         x_train, y_train, x_test, y_test = load_cifar10("cifar-10-batches-py")
 
         x = x_train[:number_samples]          # (N, 3072)
@@ -58,7 +58,6 @@ class Model:
         x = (x - np.mean(x, axis=0)) / np.std(x, axis=0)  # Z-score normalize
 
         dimension_input = 32 * 32 * 3
-        hidden_layer_size = 1024
         dimension_output = 10
 
         y_onehot = np.zeros((number_samples, dimension_output), dtype=np.float32)
@@ -151,20 +150,21 @@ class Model:
         else:
             raise ValueError(f"Invalid activation function: {strategy}")
 
-    def train(self, strategy: str, epochs: int, batch_size: int, metrics: bool = False):
-        print(f"Training model with strategy: {strategy}")
-        if strategy == "hardcode":
+    def train(self, architecture: str, epochs: int, batch_size: int, metrics: bool = False):
+        if architecture == "hardcode":
+            print(f"Training model with a hardcoded network")
             self.train_hardcode(epochs, metrics)
-        elif strategy == "layered":
-            self.train_layered(epochs, batch_size, metrics)
+        elif architecture == "FCN":
+            print(f"Training model with a fully connected network")
+            self.train_FCN(epochs, batch_size, metrics)
         else:
-            raise ValueError(f"Invalid strategy: {strategy}")
+            raise ValueError(f"Invalid architecture: {architecture}")
         self.y_prediction = self._predict_full()
         print_metrics(self.y_prediction, self.output_data_shape, self.loss_function())
         return 0
     
     
-    def train_layered(self, epochs: int, batch_size: int = 256, metrics: bool = False):
+    def train_FCN(self, epochs: int, batch_size: int = 256, metrics: bool = False):
         n = self.input_data_shape.shape[0]
         for epoch in range(epochs):
             start_epoch_decay = 30
@@ -277,20 +277,7 @@ class Model:
 
     def _predict_full(self) -> np.ndarray:
         """Forward pass on full dataset for final metrics."""
-        hidden_activations = []
-        for idx, weight in enumerate(self.weights):
-            if idx == 0:
-                layer_input = self.input_data_shape
-            else:
-                layer_input = hidden_activations[idx - 1]
-            
-            linear_output = layer_input.dot(weight)
-            if idx < len(self.weights) - 1:
-                output = self.activation_function(linear_output)
-            else:
-                output = linear_output
-            hidden_activations.append(output)
-        return hidden_activations[-1]
+        return self.predict_logits(self.input_data_shape)
 
     def evaluate(self, batch_size: int = 512) -> float:
         _, _, x_test, y_test = load_cifar10("cifar-10-batches-py")
@@ -306,12 +293,8 @@ class Model:
         logits_list = []
         for i in range(0, n_test, batch_size):
             x_batch = x_test[i:i+batch_size]
-            hidden = x_batch
-            for idx, weight in enumerate(self.weights):
-                hidden = hidden @ weight
-                if idx < len(self.weights) - 1:
-                    hidden = self.activation_function(hidden)
-            logits_list.append(hidden)
+            logits_batch = self.predict_logits(x_batch)
+            logits_list.append(logits_batch)
         logits = np.vstack(logits_list)
         
         preds = np.argmax(logits, axis=1)
@@ -326,15 +309,31 @@ class Model:
         logits_list = []
         for i in range(0, n, batch_size):
             x_batch = x[i:i+batch_size]
-            hidden = x_batch
-            for idx, weight in enumerate(self.weights):
-                hidden = hidden @ weight
-                if idx < len(self.weights) - 1:
-                    hidden = self.activation_function(hidden)
-            logits_list.append(hidden)
+            logits_batch = self.predict_logits(x_batch)
+            logits_list.append(logits_batch)
         logits = np.vstack(logits_list)
         preds = np.argmax(logits, axis=1)
         y_labels = np.argmax(self.output_data_shape, axis=1)
         acc = np.mean(preds == y_labels)
         print(f"TRAIN Accuracy (evaluate_on_train): {acc:.4f}")
         return acc
+    
+    def predict_logits(self, x: np.ndarray) -> np.ndarray:
+        hidden = x
+        for idx, weight in enumerate(self.weights):
+            hidden = hidden @ weight
+            if idx < len(self.weights) - 1:
+                hidden = self.activation_function(hidden)
+        return hidden
+
+    def predict_classes(self, x: np.ndarray) -> np.ndarray:
+        logits = self.predict_logits(x)
+        return np.argmax(logits, axis=1)
+
+    def get_normalized_test(self) -> tuple[np.ndarray, np.ndarray]:
+        """Return normalized CIFAR-10 test data using train stats."""
+        _, _, x_test, y_test = load_cifar10("cifar-10-batches-py")
+        mean = np.mean(self.input_data_shape, axis=0, keepdims=True)
+        std = np.std(self.input_data_shape, axis=0, keepdims=True) + 1e-8
+        x_test_norm = (x_test - mean) / std
+        return x_test_norm, y_test

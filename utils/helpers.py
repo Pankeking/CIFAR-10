@@ -2,6 +2,11 @@ import pickle
 import os
 import numpy as np
 
+CIFAR10_CLASSES = [
+    "airplane", "automobile", "bird", "cat", "deer",
+    "dog", "frog", "horse", "ship", "truck"
+]
+
 def print_metrics(y_prediction: np.ndarray, y_actual: np.ndarray, loss: float):
     pred_classes = np.argmax(y_prediction, axis=1)          # shape (64,)
     true_classes = np.argmax(y_actual, axis=1)
