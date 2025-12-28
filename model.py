@@ -1,8 +1,8 @@
 import pickle
 import os
 import numpy as np
-from helpers import print_metrics, load_cifar10
-from math_utils import glorot_uniform, sigmoid, relu, relu_derivative, mean_squared_error, cross_entropy_loss, softmax
+from utils.helpers import print_metrics, load_cifar10
+from utils.math import glorot_uniform, sigmoid, relu, relu_derivative, mean_squared_error, cross_entropy_loss, softmax
 
 class Model:
     def __init__(self, learning_rate: float = 1e-2, weight_decay: float = 1e-3, loss_mode: str = "cross_entropy", activation_function: str = "relu"):
@@ -95,7 +95,8 @@ class Model:
         self.weights = weights
 
     def save(self, filepath: str) -> None:
-        with open(filepath, 'wb') as f:
+        model_directory = os.path.dirname("models")
+        with open(os.path.join(model_directory, filepath), 'wb') as f:
             pickle.dump({
                 'weights': self.weights,
                 'input_data_shape': self.input_data_shape,
@@ -109,14 +110,16 @@ class Model:
                 'learning_rate': self.learning_rate,
                 'weight_decay': self.weight_decay
             }, f)
-        print(f"Model saved to {filepath}")
+        print(f"Model saved to {os.path.join(model_directory, filepath)}")
 
     def save_weights_only(self, filepath: str) -> None:
-        np.savez_compressed(filepath, weights=self.weights)
-        print(f"Weights saved to {filepath}")
+        model_directory = os.path.dirname("models")
+        np.savez_compressed(os.path.join(model_directory, filepath), weights=self.weights)
+        print(f"Weights saved to {os.path.join(model_directory, filepath)}")
 
     def load(self, filepath: str, rebuild_data: bool = False) -> None:
-        with open(filepath, 'rb') as f:
+        model_directory = os.path.dirname("models")
+        with open(os.path.join(model_directory, filepath), 'rb') as f:
             data = pickle.load(f)
         self.weights = data['weights']
         self.input_data_shape = data['input_data_shape']
@@ -131,12 +134,11 @@ class Model:
             self.activation_function = sigmoid
         else:
             raise ValueError(f"Invalid activation function: {activation_function_name}")
-        print(f"Model loaded from {filepath}")
+        print(f"Model loaded from {os.path.join(model_directory, filepath)}")
             
         if rebuild_data:  # Rebuild if data shapes missing
             self.create_model("cifar10")
         
-        print(f"Model loaded from {filepath}")
         self.y_prediction = None  # Reset prediction cache
 
     
