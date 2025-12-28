@@ -12,18 +12,19 @@ def main():
     args.add_argument("--start", type=int, default=0, help="Start index in test set")
 
     args = args.parse_args()
-    learning_rate = 1e-2
+    learning_rate = 1e-3
     weight_decay = 3e-3
     number_samples = 50000
     epochs = 40
     hidden_layer_size = 512
     loss_mode = LossMode.CROSS_ENTROPY
-    optimizer_mode = OptimizerMode.SGD
+    optimizer_mode = OptimizerMode.ADAM
     model_filename = f"fixed_model_{learning_rate:.1e}_{loss_mode.value}_{number_samples}_{optimizer_mode.value}_{hidden_layer_size}_{epochs}.pkl"
     optimizer = Optimizer(
             optimizer_mode=optimizer_mode,
             start_epoch_decay=30,
-            decay_rate=0.99
+            decay_rate=0.99,
+            learning_rate=learning_rate
         )
 
     if sum([args.train, args.evaluate, args.predict]) > 1:

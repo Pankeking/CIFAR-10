@@ -8,30 +8,19 @@ from utils.optimizers import Optimizer, OptimizerMode
 
 class Model:
     def __init__(self,
-        learning_rate: float = 1e-2,
         weight_decay: float = 1e-3,
         loss: Loss = Loss(),
         activation_function: str = "relu",
         optimizer: Optimizer = Optimizer(),
-        beta1: float = 0.9,
-        beta2: float = 0.999,
-        epsilon: float = 1e-8
     ):
         self.input_data_shape: np.ndarray | None = None
         self.output_data_shape: np.ndarray | None = None
         self.weights: list[np.ndarray] | None = None
         self.y_prediction: np.ndarray | None = None
-        self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.loss = loss
         self.optimizer = optimizer
-        self.beta1 = beta1
-        self.beta2 = beta2
-        self.epsilon = epsilon
-        self.m = None
-        self.v = None
-        self.t = 0
-        
+
         if activation_function == "relu":
             self.activation_function = relu
         elif activation_function == "sigmoid":
@@ -39,13 +28,6 @@ class Model:
         else:
             raise ValueError(f"Invalid activation function: {activation_function}")
 
-    def update_weights(self, weights: list[np.ndarray], gradients: list[np.ndarray]) -> None:
-        self.weights = self.optimizer.update_weights(weights, gradients)
-
-    def set_learning(self, learning_rate: float, weight_decay: float) -> None:
-        self.learning_rate = learning_rate
-        self.weight_decay = weight_decay
-  
     def create_model(self, number_samples: int, hidden_layer_size: int = 512) -> None:
         print(f"Creating model with CIFAR-10 dataset")
         self.build_cifar10_network(number_samples, hidden_layer_size)
@@ -76,10 +58,6 @@ class Model:
         self.output_data_shape = y_onehot
         self.weights = weights
 
-        self.m = [np.zeros_like(weight) for weight in weights]
-        self.v = [np.zeros_like(weight) for weight in weights]
-        self.t = 0
-
 
     def save(self, filepath: str) -> None:
         model_directory = "models"
@@ -94,12 +72,9 @@ class Model:
                     else 'sigmoid' if self.activation_function is sigmoid
                     else None
                 ),
-                'learning_rate': self.learning_rate,
+                'learning_rate': self.optimizer.learning_rate,
                 'weight_decay': self.weight_decay,
                 'optimizer': self.optimizer.optimizer_mode,
-                'beta1': self.beta1,
-                'beta2': self.beta2,
-                'epsilon': self.epsilon
             }, f)
         print(f"Model saved to {os.path.join(model_directory, filepath)}")
 
@@ -115,13 +90,10 @@ class Model:
         self.weights = data['weights']
         self.input_data_shape = data['input_data_shape']
         self.output_data_shape = data['output_data_shape']
-        self.learning_rate = data.get('learning_rate', 1e-2)
         self.weight_decay = data.get('weight_decay', 1e-3)
         self.loss = Loss(loss_mode=data.get('loss_mode', LossMode.CROSS_ENTROPY))
         self.optimizer = Optimizer(optimizer_mode=data.get('optimizer', OptimizerMode.SGD))
-        self.beta1 = data.get('beta1', 0.9)
-        self.beta2 = data.get('beta2', 0.999)
-        self.epsilon = data.get('epsilon', 1e-8)
+        self.optimizer.learning_rate = data.get('learning_rate', 1e-2)
         activation_function_name = data.get('activation_function_name', 'relu')
         if activation_function_name == "relu":
             self.activation_function = relu
@@ -202,10 +174,8 @@ class Model:
                         gradient_next = gradient_hidden * relu_grad
                     
                     gradients.insert(0, gradient_weight)
-                    # new_weight = self.weights[idx] - (lr * gradient_weight)
-                    # new_weights.insert(0, new_weight)
 
-                self.update_weights(self.weights, gradients)
+                self.weights = self.optimizer.update_weights(self.weights, gradients)
             
                 self.y_prediction = hidden_activations[-1]
             if metrics:

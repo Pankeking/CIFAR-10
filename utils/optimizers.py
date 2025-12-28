@@ -52,6 +52,40 @@ class Optimizer:
         return updated_weights
     
     def update_weights_adam(self, weights: list[np.ndarray], gradients: list[np.ndarray]) -> list[np.ndarray]:
-        pass
+        beta1 = 0.9
+        beta2 = 0.999
+        epsilon = 1e-8
+
+        # Initialize moment vectors on first call
+        if self.m is None or self.v is None:
+            self.m = [np.zeros_like(w) for w in weights]
+            self.v = [np.zeros_like(w) for w in weights]
+            self.t = 0
+
+        self.t += 1
+        updated_weights = []
+
+        for i, (w, g) in enumerate(zip(weights, gradients)):
+            m = self.m[i]
+            v = self.v[i]
+
+            # Update biased first moment estimate
+            m = beta1 * m + (1.0 - beta1) * g
+            # Update biased second raw moment estimate
+            v = beta2 * v + (1.0 - beta2) * (g ** 2)
+
+            # Bias-corrected first and second moment estimates
+            m_hat = m / (1.0 - beta1 ** self.t)
+            v_hat = v / (1.0 - beta2 ** self.t)
+
+            # Parameter update
+            w_new = w - self.learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
+
+            # Store updated state and weight
+            self.m[i] = m
+            self.v[i] = v
+            updated_weights.append(w_new)
+
+        return updated_weights
 
 
