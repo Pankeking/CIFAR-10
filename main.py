@@ -13,17 +13,21 @@ def main():
 
     args = args.parse_args()
     learning_rate = 1e-3
-    weight_decay = 3e-3
+    weight_decay = 3e-4
     number_samples = 50000
-    epochs = 40
+    epochs = 35
     hidden_layer_size = 512
     loss_mode = LossMode.CROSS_ENTROPY
     optimizer_mode = OptimizerMode.ADAM
-    model_filename = f"fixed_model_{learning_rate:.1e}_{loss_mode.value}_{number_samples}_{optimizer_mode.value}_{hidden_layer_size}_{epochs}.pkl"
+    
+    model_filename = f"fixed_model_{learning_rate:.1e}_{loss_mode.value}_{number_samples}_{optimizer_mode.value}_{hidden_layer_size}_{epochs}_.pkl"
     optimizer = Optimizer(
             optimizer_mode=optimizer_mode,
-            start_epoch_decay=30,
-            decay_rate=0.99,
+            start_epoch_decay=22,
+            decay_rate=0.98,
+            beta1 = 0.9,
+            beta2 = 0.999,
+            epsilon = 1e-8,
             learning_rate=learning_rate
         )
 
@@ -31,7 +35,6 @@ def main():
         raise ValueError("Use only one of --train, --evaluate or --predict")
     elif args.train:
         model = Model(
-            learning_rate=learning_rate,
             weight_decay=weight_decay,
             activation_function="relu",
             optimizer=optimizer,
@@ -39,7 +42,8 @@ def main():
         )
         model.create_model(
             number_samples=number_samples,
-            hidden_layer_size=hidden_layer_size
+            hidden_layer_size=hidden_layer_size,
+            dataset_name="tiny_imagenet",
         )
         model.train(
             epochs=epochs,

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from model import Model
-from utils.helpers import load_cifar10
+from utils.data_loader import load_dataset
 from utils.math import softmax
 
 CIFAR10_CLASSES = [
@@ -15,7 +15,7 @@ def run_view(model_filename: str, start_index: int = 0) -> None:
     model.load(model_filename)
 
     # Load test data
-    _, _, x_test, y_test = load_cifar10("cifar-10-batches-py")
+    _, _, x_test, y_test = load_dataset("cifar10")
 
     # Normalize with train stats
     mean = np.mean(model.input_data_shape, axis=0, keepdims=True)

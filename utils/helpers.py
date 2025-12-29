@@ -1,5 +1,3 @@
-import pickle
-import os
 import numpy as np
 from utils.losses import Loss
 
@@ -13,26 +11,3 @@ def print_metrics(logits: np.ndarray, labels: np.ndarray, loss: Loss):
     print(f"Loss: {loss_value}")
     print("Class diff:", class_diff)
     print("First sample logits:", logits[0])
-
-def _load_cifar_batch(path: str) -> tuple[np.ndarray, np.ndarray]:
-    with open(path, "rb") as f:
-        batch = pickle.load(f, encoding="latin1")
-    data = batch["data"]          # shape (10000, 3072), uint8
-    labels = np.array(batch["labels"], dtype=np.int64)  # shape (10000,)
-    data = data.astype(np.float32) / 255.0
-    return data, labels
-
-def load_cifar10(dataset_name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    xs = []
-    ys = []
-    data_dir = "data"
-    for i in range(1, 6):
-        path = os.path.join(data_dir, dataset_name, f"data_batch_{i}")
-        x, y = _load_cifar_batch(path)
-        xs.append(x)
-        ys.append(y)
-    x_train = np.concatenate(xs, axis=0)   # (50000, 3072)
-    y_train = np.concatenate(ys, axis=0)   # (50000,)
-
-    x_test, y_test = _load_cifar_batch(os.path.join(data_dir, dataset_name, "test_batch"))
-    return x_train, y_train, x_test, y_test
