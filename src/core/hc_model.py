@@ -5,6 +5,7 @@ from nn.losses import Loss
 from nn.optimizers import Optimizer
 from nn.math import glorot_uniform
 from utils.helpers import print_metrics
+from nn.math import relu
 
 
 class HCModel(Model):
@@ -12,10 +13,10 @@ class HCModel(Model):
         learning_rate: float = 1e-2,
         weight_decay: float = 1e-3,
         loss: Loss = Loss(),
-        activation_function: str = "relu",
         optimizer: Optimizer = Optimizer(),
     ):
-        super().__init__(learning_rate, weight_decay, loss, activation_function, optimizer)
+        super().__init__(learning_rate, weight_decay, loss, optimizer)
+        self.activation_function = relu
 
     @override
     def create_model(self, number_samples: int, hidden_layer_size: int = 512) -> None:

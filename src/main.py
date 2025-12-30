@@ -15,7 +15,7 @@ def main():
     args = args.parse_args()
     learning_rate = 1e-3
     weight_decay = 3e-4
-    number_samples = 50000
+    number_samples = 500
     epochs = 35
     hidden_layer_size = 512
     loss_mode = LossMode.CROSS_ENTROPY
@@ -38,7 +38,6 @@ def main():
     elif args.train:
         model = Model(
             weight_decay=weight_decay,
-            activation_function="relu",
             optimizer=optimizer,
             loss=Loss(loss_mode=loss_mode),
         )

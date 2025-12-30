@@ -4,7 +4,6 @@ import numpy as np
 from core.layers import LinearLayer, ReLULayer
 from utils.helpers import print_metrics
 from data.data_loader import load_dataset
-from nn.math import glorot_uniform, sigmoid, relu, relu_derivative
 from nn.losses import Loss, LossMode
 from nn.optimizers import Optimizer, OptimizerMode
 
@@ -12,7 +11,6 @@ class Model:
     def __init__(self,
         weight_decay: float = 1e-3,
         loss: Loss = Loss(),
-        activation_function: str = "relu",
         optimizer: Optimizer = Optimizer(),
     ):
         self.input_data_shape: np.ndarray | None = None
@@ -23,13 +21,6 @@ class Model:
         self.loss = loss
         self.optimizer = optimizer
         self.dataset_name = "cifar10"
-
-        if activation_function == "relu":
-            self.activation_function = relu
-        elif activation_function == "sigmoid":
-            self.activation_function = sigmoid
-        else:
-            raise ValueError(f"Invalid activation function: {activation_function}")
 
 
     def create_model(self, number_samples: int, dataset_name: str, hidden_layer_size: int) -> None:
@@ -60,32 +51,18 @@ class Model:
         ]
         self.layers = layers
 
-        weights = [
-            glorot_uniform(dimension_input, hidden_layer_size),
-            glorot_uniform(hidden_layer_size, hidden_layer_size // 2),
-            glorot_uniform(hidden_layer_size // 2, hidden_layer_size // 4),
-            glorot_uniform(hidden_layer_size // 4, dimension_output),
-        ]
-
         self.input_data_shape = x
         self.output_data_shape = y_onehot
-        self.weights = weights
 
 
     def save(self, filepath: str) -> None:
         model_directory = "models"
         with open(os.path.join(model_directory, filepath), 'wb') as f:
             pickle.dump({
-                'weights': self.weights,
                 'layers': self.layers,
                 'input_data_shape': self.input_data_shape,
                 'output_data_shape': self.output_data_shape,
                 'loss_mode': self.loss.loss_mode,
-                'activation_function_name': (
-                    'relu' if self.activation_function is relu
-                    else 'sigmoid' if self.activation_function is sigmoid
-                    else None
-                ),
                 'learning_rate': self.optimizer.learning_rate,
                 'weight_decay': self.weight_decay,
                 'optimizer': self.optimizer.optimizer_mode,
@@ -98,7 +75,6 @@ class Model:
         model_directory = "models"
         with open(os.path.join(model_directory, filepath), 'rb') as f:
             data = pickle.load(f)
-        self.weights = data['weights']
         self.layers = data['layers']
         self.input_data_shape = data['input_data_shape']
         self.output_data_shape = data['output_data_shape']
@@ -107,30 +83,15 @@ class Model:
         self.optimizer = Optimizer(optimizer_mode=data.get('optimizer', OptimizerMode.SGD))
         self.optimizer.learning_rate = data.get('learning_rate', 1e-2)
         self.dataset_name = data.get('dataset_name', 'cifar10')
-        activation_function_name = data.get('activation_function_name', 'relu')
-        if activation_function_name == "relu":
-            self.activation_function = relu
-        elif activation_function_name == "sigmoid":
-            self.activation_function = sigmoid
-        else:
-            raise ValueError(f"Invalid activation function: {activation_function_name}")
         print(f"Model loaded from {os.path.join(model_directory, filepath)} with dataset {self.dataset_name}")
             
         self.y_prediction = None
 
 
-    def set_activation_function(self, strategy: str) -> None:
-        if strategy == "sigmoid":
-            self.activation_function = sigmoid
-        elif strategy == "relu":
-            self.activation_function = relu
-        else:
-            raise ValueError(f"Invalid activation function: {strategy}")
-
 
     def train(self, epochs: int, batch_size: int, metrics: bool = False):
         self._train(epochs, batch_size, metrics)
-        self.y_prediction = self._predict_full()
+        self.y_prediction = self.predict_logits(self.input_data_shape)
         print_metrics(
             self.y_prediction,
             self.output_data_shape,
@@ -165,7 +126,7 @@ class Model:
                 self.optimizer.step(self.layers)
 
             if metrics:
-                self.y_prediction = self._predict_full()
+                self.y_prediction = self.predict_logits(self.input_data_shape)
                 print(f"Epoch {epoch}:")
                 print_metrics(
                     self.y_prediction,
@@ -174,9 +135,6 @@ class Model:
                 )
 
 
-    def _predict_full(self) -> np.ndarray:
-        """Forward pass on full dataset for final metrics."""
-        return self.predict_logits(self.input_data_shape)
 
 
     def evaluate(self, batch_size: int = 512) -> float:
@@ -219,12 +177,10 @@ class Model:
         return acc
     
     def predict_logits(self, x: np.ndarray) -> np.ndarray:
-        hidden = x
-        for idx, weight in enumerate(self.weights):
-            hidden = hidden @ weight
-            if idx < len(self.weights) - 1:
-                hidden = self.activation_function(hidden)
-        return hidden
+        out = x
+        for layer in self.layers:
+            out = layer.forward(out)
+        return out
 
 
     def predict_classes(self, x: np.ndarray) -> np.ndarray:
@@ -233,7 +189,6 @@ class Model:
 
 
     def get_normalized_test(self) -> tuple[np.ndarray, np.ndarray]:
-        """Return normalized CIFAR-10 test data using train stats."""
         _, _, x_test, y_test = load_dataset(self.dataset_name)
         mean = np.mean(self.input_data_shape, axis=0, keepdims=True)
         std = np.std(self.input_data_shape, axis=0, keepdims=True) + 1e-8
