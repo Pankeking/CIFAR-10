@@ -1,7 +1,7 @@
 import numpy as np
 from nn.losses import Loss
 
-def print_metrics(logits: np.ndarray, labels: np.ndarray, loss: Loss):
+def print_metrics(labels: np.ndarray, loss: Loss):
     loss_value = loss.loss_fn(logits, labels)
     pred_classes = np.argmax(logits, axis=1)          # shape (64,)
     true_classes = np.argmax(labels, axis=1)

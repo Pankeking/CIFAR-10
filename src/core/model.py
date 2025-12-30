@@ -14,7 +14,6 @@ class Model:
     ):
         self.input_data_shape: np.ndarray | None = None
         self.output_data_shape: np.ndarray | None = None
-        self.y_prediction: np.ndarray | None = None
         self.loss = loss
         self.optimizer = optimizer
         self.dataset_name = "cifar10"
@@ -80,15 +79,12 @@ class Model:
         self.dataset_name = data.get('dataset_name', 'cifar10')
         print(f"Model loaded from {os.path.join(model_directory, filepath)} with dataset {self.dataset_name}")
             
-        self.y_prediction = None
 
 
 
     def train(self, epochs: int, batch_size: int, metrics: bool = False):
         self._train(epochs, batch_size, metrics)
-        self.y_prediction = self.predict_logits(self.input_data_shape)
         print_metrics(
-            self.y_prediction,
             self.output_data_shape,
             self.loss
         )
@@ -181,11 +177,3 @@ class Model:
     def predict_classes(self, x: np.ndarray) -> np.ndarray:
         logits = self.predict_logits(x)
         return np.argmax(logits, axis=1)
-
-
-    def get_normalized_test(self) -> tuple[np.ndarray, np.ndarray]:
-        _, _, x_test, y_test = load_dataset(self.dataset_name)
-        mean = np.mean(self.input_data_shape, axis=0, keepdims=True)
-        std = np.std(self.input_data_shape, axis=0, keepdims=True) + 1e-8
-        x_test_norm = (x_test - mean) / std
-        return x_test_norm, y_test

@@ -1,8 +1,8 @@
 import numpy as np
 
-def glorot_uniform(in_dim: int, out_dim: int) -> np.ndarray:
-    limit = np.sqrt(6.0 / (in_dim + out_dim))
-    return np.random.uniform(-limit, limit, size=(in_dim, out_dim))
+def glorot_uniform(fan_in: int, fan_out: int) -> np.ndarray:
+    limit = np.sqrt(6.0 / (fan_in + fan_out))
+    return np.random.uniform(-limit, limit, shape=(fan_in, fan_out), dtype=np.float32)
 
 def sigmoid(x: np.ndarray) -> np.ndarray:
     x =np.clip(x, -50, 50)

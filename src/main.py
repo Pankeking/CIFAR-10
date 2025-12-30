@@ -6,18 +6,18 @@ from nn.optimizers import Optimizer, OptimizerMode
 
 def main():
     args = argparse.ArgumentParser()
-    args.add_argument("--train, -t", action="store_true", help="Train the model")
-    args.add_argument("--evaluate, -e", action="store_true", help="Evaluate the model")
+    args.add_argument("--train", action="store_true", help="Train the model")
+    args.add_argument("--evaluate", action="store_true", help="Evaluate the model")
     
-    args.add_argument("--predict, -p", action="store_true", help="Predict the model")
-    args.add_argument("--start, -s", type=int, default=0, help="Start index in test set")
+    args.add_argument("--predict", action="store_true", help="Predict the model")
+    args.add_argument("--start", type=int, default=0, help="Start index in test set")
 
-    args.add_argument("--dataset, -d", type=str, default="tiny_imagenet", help="Dataset to use")
+    args.add_argument("--dataset", type=str, default="tiny_imagenet", help="Dataset to use")
 
     args = args.parse_args()
     learning_rate = 1e-3
     weight_decay = 1e-4
-    number_samples = 5000
+    number_samples = 500
     epochs = 35
     loss_mode = LossMode.CROSS_ENTROPY
     optimizer_mode = OptimizerMode.ADAM
