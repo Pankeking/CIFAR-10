@@ -10,6 +10,7 @@ def main():
     args.add_argument("--evaluate", action="store_true")
     args.add_argument("--predict", action="store_true")
     args.add_argument("--start", type=int, default=0, help="Start index in test set")
+    args.add_argument("--dataset", type=str, default="tiny_imagenet", help="Dataset to use")
 
     args = args.parse_args()
     learning_rate = 1e-3
@@ -19,7 +20,7 @@ def main():
     hidden_layer_size = 512
     loss_mode = LossMode.CROSS_ENTROPY
     optimizer_mode = OptimizerMode.ADAM
-    dataset_name = "tiny_imagenet"
+    dataset_name = args.dataset
     
     model_filename = f"{dataset_name}_model_{learning_rate:.1e}_{loss_mode.value}_{number_samples}_{optimizer_mode.value}_{hidden_layer_size}_{epochs}_.pkl"
     optimizer = Optimizer(
@@ -43,8 +44,8 @@ def main():
         )
         model.create_model(
             number_samples=number_samples,
-            hidden_layer_size=hidden_layer_size,
             dataset_name=dataset_name,
+            hidden_layer_size=hidden_layer_size,
         )
         model.train(
             epochs=epochs,

@@ -1,5 +1,6 @@
 import numpy as np
 from enum import Enum
+from core.layers import Layer
 
 class OptimizerMode(Enum):
     ADAM = "adam"
@@ -43,24 +44,28 @@ class Optimizer:
         self.epoch += 1
 
 
-    def update_weights(self, weights: list[np.ndarray], gradients: list[np.ndarray]) -> list[np.ndarray]:
+    def step(self, layers: list[Layer]) -> None:
+        weights = []
+        gradients = []
+        for layer in layers:
+            weights.extend(layer.params)
+            gradients.extend(layer.grads)
+
         if self.optimizer_mode == OptimizerMode.SGD:
-            return self.update_weights_sgd(weights, gradients)
+            self.step_sgd(weights, gradients)
         elif self.optimizer_mode == OptimizerMode.ADAM:
-            return self.update_weights_adam(weights, gradients)
+            self.step_adam(weights, gradients)
         else:
             raise ValueError(f"Invalid optimizer mode: {self.optimizer_mode}")
 
 
-    def update_weights_sgd(self, weights: list[np.ndarray], gradients: list[np.ndarray]) -> list[np.ndarray]:
-        updated_weights = []
+    def step_sgd(self, weights: list[np.ndarray], gradients: list[np.ndarray]) -> list[np.ndarray]:
         for weight, gradient in zip(weights, gradients):
-            updated_weight = weight - (self.learning_rate * gradient)
-            updated_weights.append(updated_weight)
-        return updated_weights
+            g_reg = gradient + self.weight_decay * weight
+            weight -= self.learning_rate * g_reg
     
 
-    def update_weights_adam(self, weights: list[np.ndarray], gradients: list[np.ndarray]) -> list[np.ndarray]:
+    def step_adam(self, weights: list[np.ndarray], gradients: list[np.ndarray]) -> list[np.ndarray]:
         # Initialize moment vectors on first call
         if self.m is None or self.v is None:
             self.m = [np.zeros_like(w) for w in weights]
@@ -68,27 +73,26 @@ class Optimizer:
             self.t = 0
 
         self.t += 1
-        updated_weights = []
 
         for i, (w, g) in enumerate(zip(weights, gradients)):
+            g_reg = g + self.weight_decay * w
+
             m = self.m[i]
             v = self.v[i]
 
             # Update biased first moment estimate
-            m = self.beta1 * m + (1.0 - self.beta1) * g
+            m = self.beta1 * m + (1.0 - self.beta1) * g_reg
             # Update biased second raw moment estimate
-            v = self.beta2 * v + (1.0 - self.beta2) * (g ** 2)
+            v = self.beta2 * v + (1.0 - self.beta2) * (g_reg ** 2)
 
             # Bias-corrected first and second moment estimates
             m_hat = m / (1.0 - self.beta1 ** self.t)
             v_hat = v / (1.0 - self.beta2 ** self.t)
 
             # Parameter update
-            w_new = w - self.learning_rate * m_hat / (np.sqrt(v_hat) + self.epsilon)
+            w -= self.learning_rate * m_hat / (np.sqrt(v_hat) + self.epsilon)
 
             # Store updated state and weight
             self.m[i] = m
             self.v[i] = v
-            updated_weights.append(w_new)
 
-        return updated_weights

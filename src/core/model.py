@@ -1,6 +1,7 @@
 import pickle
 import os
 import numpy as np
+from core.layers import LinearLayer, ReLULayer
 from utils.helpers import print_metrics
 from data.data_loader import load_dataset
 from nn.math import glorot_uniform, sigmoid, relu, relu_derivative
@@ -31,7 +32,7 @@ class Model:
             raise ValueError(f"Invalid activation function: {activation_function}")
 
 
-    def create_model(self, number_samples: int, hidden_layer_size: int = 512, dataset_name: str = "cifar10") -> None:
+    def create_model(self, number_samples: int, dataset_name: str, hidden_layer_size: int) -> None:
         self.dataset_name = dataset_name
         print(f"Creating model with {self.dataset_name} dataset")
         x_train, y_train, _, _ = load_dataset(self.dataset_name)
@@ -47,6 +48,17 @@ class Model:
 
         y_onehot = np.zeros((number_samples, dimension_output), dtype=np.float32)
         y_onehot[np.arange(number_samples), y_labels] = 1.0
+
+        layers = [
+            LinearLayer(dimension_input, hidden_layer_size),
+            ReLULayer(),
+            LinearLayer(hidden_layer_size, hidden_layer_size // 2),
+            ReLULayer(),
+            LinearLayer(hidden_layer_size // 2, hidden_layer_size // 4),
+            ReLULayer(),
+            LinearLayer(hidden_layer_size // 4, dimension_output),
+        ]
+        self.layers = layers
 
         weights = [
             glorot_uniform(dimension_input, hidden_layer_size),
@@ -65,6 +77,7 @@ class Model:
         with open(os.path.join(model_directory, filepath), 'wb') as f:
             pickle.dump({
                 'weights': self.weights,
+                'layers': self.layers,
                 'input_data_shape': self.input_data_shape,
                 'output_data_shape': self.output_data_shape,
                 'loss_mode': self.loss.loss_mode,
@@ -86,6 +99,7 @@ class Model:
         with open(os.path.join(model_directory, filepath), 'rb') as f:
             data = pickle.load(f)
         self.weights = data['weights']
+        self.layers = data['layers']
         self.input_data_shape = data['input_data_shape']
         self.output_data_shape = data['output_data_shape']
         self.weight_decay = data.get('weight_decay', 1e-3)
@@ -138,43 +152,18 @@ class Model:
                 y_batch = self.output_data_shape[batch_idx]
 
                 # forward pass
-                hidden_activations = []
-                for layer_idx, weight in enumerate(self.weights):
-                    if layer_idx == 0:
-                        layer_input = x_batch
-                    else:
-                        layer_input = hidden_activations[layer_idx - 1] # output of previous layer
-                    
-                    linear_output = layer_input.dot(weight)
-
-                    if layer_idx < len(self.weights) - 1:
-                        output = self.activation_function(linear_output)
-                    else:
-                        output = linear_output
-                    hidden_activations.append(output)
-                
-                # backward pass
-                gradients = []
-                logits = hidden_activations[-1]
-                gradient_next = self.loss.gradient_fn(logits, y_batch)
-                for idx in reversed(range(len(self.weights))):
-                    if idx == 0:
-                        layer_input = x_batch
-                    else:
-                        layer_input = hidden_activations[idx - 1]
-
-                    gradient_weight = layer_input.T.dot(gradient_next) + self.weight_decay * self.weights[idx]
-
-                    if idx > 0:
-                        gradient_hidden = gradient_next.dot(self.weights[idx].T)
-                        relu_grad = relu_derivative(hidden_activations[idx - 1])
-                        gradient_next = gradient_hidden * relu_grad
-                    
-                    gradients.insert(0, gradient_weight)
-
-                self.weights = self.optimizer.update_weights(self.weights, gradients)
+                out = x_batch
+                for layer in self.layers:
+                    out = layer.forward(out)
             
-                self.y_prediction = hidden_activations[-1]
+                dout = self.loss.gradient_fn(out, y_batch)
+
+                # backward pass
+                for layer in reversed(self.layers):
+                    dout = layer.backward(dout)
+
+                self.optimizer.step(self.layers)
+
             if metrics:
                 self.y_prediction = self._predict_full()
                 print(f"Epoch {epoch}:")

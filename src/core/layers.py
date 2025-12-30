@@ -1,5 +1,6 @@
 import numpy as np
 
+from nn.math import glorot_uniform, relu, relu_derivative
 
 class Layer:
     def __init__(self):
@@ -26,9 +27,7 @@ class LinearLayer(Layer):
         self.in_features = in_features
         self.out_features = out_features
 
-        limit = np.sqrt(6.0 / (in_features + out_features))  # glorot-like
-
-        self.weights = np.random.uniform(-limit, limit, size=(in_features, out_features))
+        self.weights = glorot_uniform(in_features, out_features)
         self.bias = np.zeros(out_features, dtype=np.float32)
 
         self.grad_weights = np.zeros_like(self.weights)
@@ -56,6 +55,28 @@ class LinearLayer(Layer):
     @property
     def grads(self) -> list[np.ndarray]:
         return [self.grad_weights, self.grad_bias]
+
+
+class ReLULayer(Layer):
+    def __init__(self):
+        super().__init__()
+        self.cache = None
+
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        self.cache = x
+        return relu(x)
+        
+    def backward(self, dout: np.ndarray) -> np.ndarray:
+        x = self.cache
+        return dout * relu_derivative(x)
+
+    @property
+    def params(self) -> list[np.ndarray]:
+        return []
+
+    @property
+    def grads(self) -> list[np.ndarray]:
+        return []
 
 
 class Conv2DLayer(Layer):
