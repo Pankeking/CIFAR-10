@@ -9,21 +9,18 @@ from nn.optimizers import Optimizer, OptimizerMode
 
 class Model:
     def __init__(self,
-        weight_decay: float = 1e-3,
         loss: Loss = Loss(),
         optimizer: Optimizer = Optimizer(),
     ):
         self.input_data_shape: np.ndarray | None = None
         self.output_data_shape: np.ndarray | None = None
-        self.weights: list[np.ndarray] | None = None
         self.y_prediction: np.ndarray | None = None
-        self.weight_decay = weight_decay
         self.loss = loss
         self.optimizer = optimizer
         self.dataset_name = "cifar10"
 
 
-    def create_model(self, number_samples: int, dataset_name: str, hidden_layer_size: int) -> None:
+    def create_model(self, number_samples: int, dataset_name: str) -> None:
         self.dataset_name = dataset_name
         print(f"Creating model with {self.dataset_name} dataset")
         x_train, y_train, _, _ = load_dataset(self.dataset_name)
@@ -41,13 +38,13 @@ class Model:
         y_onehot[np.arange(number_samples), y_labels] = 1.0
 
         layers = [
-            LinearLayer(dimension_input, hidden_layer_size),
+            LinearLayer(dimension_input, 1024),
             ReLULayer(),
-            LinearLayer(hidden_layer_size, hidden_layer_size // 2),
+            LinearLayer(1024, 512),
             ReLULayer(),
-            LinearLayer(hidden_layer_size // 2, hidden_layer_size // 4),
+            LinearLayer(512, 256),
             ReLULayer(),
-            LinearLayer(hidden_layer_size // 4, dimension_output),
+            LinearLayer(256, dimension_output),
         ]
         self.layers = layers
 
@@ -64,7 +61,6 @@ class Model:
                 'output_data_shape': self.output_data_shape,
                 'loss_mode': self.loss.loss_mode,
                 'learning_rate': self.optimizer.learning_rate,
-                'weight_decay': self.weight_decay,
                 'optimizer': self.optimizer.optimizer_mode,
                 'dataset_name': self.dataset_name,
             }, f)
@@ -78,7 +74,6 @@ class Model:
         self.layers = data['layers']
         self.input_data_shape = data['input_data_shape']
         self.output_data_shape = data['output_data_shape']
-        self.weight_decay = data.get('weight_decay', 1e-3)
         self.loss = Loss(loss_mode=data.get('loss_mode', LossMode.CROSS_ENTROPY))
         self.optimizer = Optimizer(optimizer_mode=data.get('optimizer', OptimizerMode.SGD))
         self.optimizer.learning_rate = data.get('learning_rate', 1e-2)
