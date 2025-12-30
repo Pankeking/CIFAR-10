@@ -3,7 +3,7 @@ import numpy as np
 from model import Model
 from mathlib.losses import Loss
 from mathlib.optimizers import Optimizer
-from mathlib.mathlib import glorot_uniform
+from mathlib.math import glorot_uniform
 from utils.helpers import print_metrics
 
 

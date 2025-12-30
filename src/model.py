@@ -3,7 +3,7 @@ import os
 import numpy as np
 from utils.helpers import print_metrics
 from utils.data_loader import load_dataset
-from mathlib.mathlib import glorot_uniform, sigmoid, relu, relu_derivative
+from mathlib.math import glorot_uniform, sigmoid, relu, relu_derivative
 from mathlib.losses import Loss, LossMode
 from mathlib.optimizers import Optimizer, OptimizerMode
 
