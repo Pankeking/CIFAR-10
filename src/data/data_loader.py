@@ -23,22 +23,24 @@ def _load_cifar_batch(path: str) -> tuple[np.ndarray, np.ndarray]:
 
 def _load_cifar10() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     dataset_name = "cifar-10-batches-py"
+    datasets_dir = "datasets"
+    data_dir = os.path.join(datasets_dir, dataset_name)
     xs = []
     ys = []
-    data_dir = "data"
     for i in range(1, 6):
-        path = os.path.join(data_dir, dataset_name, f"data_batch_{i}")
+        path = os.path.join(data_dir, f"data_batch_{i}")
         x, y = _load_cifar_batch(path)
         xs.append(x)
         ys.append(y)
     x_train = np.concatenate(xs, axis=0)   # (50000, 3072)
     y_train = np.concatenate(ys, axis=0)   # (50000,)
 
-    x_test, y_test = _load_cifar_batch(os.path.join(data_dir, dataset_name, "test_batch"))
+    x_test, y_test = _load_cifar_batch(os.path.join(data_dir, "test_batch"))
     return x_train, y_train, x_test, y_test
 
 def _load_tiny_imagenet() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    data_dir = os.path.join("data", "tiny-imagenet-200")
+    datasets_dir = "datasets"
+    data_dir = os.path.join(datasets_dir, "tiny-imagenet-200")
     val_dir = os.path.join(data_dir, "val")
 
     test_dir = os.path.join(data_dir, "test")

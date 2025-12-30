@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from model import Model
-from utils.data_loader import load_dataset
-from mathlib.math import softmax
+from core.model import Model
+from data.data_loader import load_dataset
+from nn.math import softmax
 
 CIFAR10_CLASSES = [
     "airplane", "automobile", "bird", "cat", "deer",

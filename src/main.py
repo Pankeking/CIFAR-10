@@ -1,8 +1,8 @@
 import argparse
-from model import Model
-from view import run_view
-from mathlib.losses import Loss, LossMode
-from mathlib.optimizers import Optimizer, OptimizerMode
+from core.model import Model
+from ui.view import run_view
+from nn.losses import Loss, LossMode
+from nn.optimizers import Optimizer, OptimizerMode
 
 def main():
     args = argparse.ArgumentParser()
