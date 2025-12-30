@@ -1,9 +1,9 @@
 from typing import override
 import numpy as np
 from model import Model
-from utils.losses import Loss
-from utils.optimizers import Optimizer
-from utils.math import glorot_uniform
+from mathlib.losses import Loss
+from mathlib.optimizers import Optimizer
+from mathlib.mathlib import glorot_uniform
 from utils.helpers import print_metrics
 
 

@@ -1,5 +1,5 @@
 import numpy as np
-from utils.losses import Loss
+from mathlib.losses import Loss
 
 def print_metrics(logits: np.ndarray, labels: np.ndarray, loss: Loss):
     loss_value = loss.loss_fn(logits, labels)

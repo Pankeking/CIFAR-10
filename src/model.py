@@ -3,9 +3,9 @@ import os
 import numpy as np
 from utils.helpers import print_metrics
 from utils.data_loader import load_dataset
-from utils.math import glorot_uniform, sigmoid, relu, relu_derivative
-from utils.losses import Loss, LossMode
-from utils.optimizers import Optimizer, OptimizerMode
+from mathlib.mathlib import glorot_uniform, sigmoid, relu, relu_derivative
+from mathlib.losses import Loss, LossMode
+from mathlib.optimizers import Optimizer, OptimizerMode
 
 class Model:
     def __init__(self,
@@ -154,7 +154,6 @@ class Model:
                     hidden_activations.append(output)
                 
                 # backward pass
-                new_weights = []
                 gradients = []
                 logits = hidden_activations[-1]
                 gradient_next = self.loss.gradient_fn(logits, y_batch)

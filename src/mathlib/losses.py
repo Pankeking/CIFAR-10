@@ -1,6 +1,6 @@
 import numpy as np
 from enum import Enum
-from utils.math import cross_entropy_grad, cross_entropy_loss, mean_squared_error_grad, mean_squared_error_loss
+from mathlib import cross_entropy_grad, cross_entropy_loss, mean_squared_error_grad, mean_squared_error_loss
 
 class LossMode(Enum):
     MEAN_SQUARED_ERROR = "mse"

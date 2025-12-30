@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from model import Model
 from utils.data_loader import load_dataset
-from utils.math import softmax
+from mathlib.mathlib import softmax
 
 CIFAR10_CLASSES = [
     "airplane", "automobile", "bird", "cat", "deer",

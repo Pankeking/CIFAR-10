@@ -1,8 +1,8 @@
 import argparse
 from model import Model
 from view import run_view
-from utils.losses import Loss, LossMode
-from utils.optimizers import Optimizer, OptimizerMode
+from mathlib.losses import Loss, LossMode
+from mathlib.optimizers import Optimizer, OptimizerMode
 
 def main():
     args = argparse.ArgumentParser()
@@ -19,8 +19,9 @@ def main():
     hidden_layer_size = 512
     loss_mode = LossMode.CROSS_ENTROPY
     optimizer_mode = OptimizerMode.ADAM
+    dataset_name = "tiny_imagenet"
     
-    model_filename = f"fixed_model_{learning_rate:.1e}_{loss_mode.value}_{number_samples}_{optimizer_mode.value}_{hidden_layer_size}_{epochs}_.pkl"
+    model_filename = f"{dataset_name}_model_{learning_rate:.1e}_{loss_mode.value}_{number_samples}_{optimizer_mode.value}_{hidden_layer_size}_{epochs}_.pkl"
     optimizer = Optimizer(
             optimizer_mode=optimizer_mode,
             start_epoch_decay=22,
@@ -43,7 +44,7 @@ def main():
         model.create_model(
             number_samples=number_samples,
             hidden_layer_size=hidden_layer_size,
-            dataset_name="tiny_imagenet",
+            dataset_name=dataset_name,
         )
         model.train(
             epochs=epochs,
