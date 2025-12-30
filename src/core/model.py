@@ -1,7 +1,7 @@
 import pickle
 import os
 import numpy as np
-from core.layers import LinearLayer, ReLULayer
+from core.layers import LinearLayer, ReLULayer, Conv2DLayer
 from utils.helpers import print_metrics
 from data.data_loader import load_dataset
 from nn.losses import Loss, LossMode
@@ -27,28 +27,35 @@ class Model:
         x = x_train[:number_samples]          # (N, 3072)
         y_labels = y_train[:number_samples]   # (N,)
 
-        x = (x - np.mean(x, axis=0)) / np.std(x, axis=0)  # Z-score normalize
+        # Z-score normalize per-channel over all pixels
+        mean = np.mean(x, axis=(0, 2, 3), keepdims=True)
+        std  = np.std(x, axis=(0, 2, 3), keepdims=True) + 1e-8
+        x = (x - mean) / std
 
-        dimension_input = x.shape[1]
+        N, C, H, W = x.shape
         num_classes = int(y_train.max() + 1)   # assumes labels 0..C-1
-        dimension_output = num_classes
 
-        y_onehot = np.zeros((number_samples, dimension_output), dtype=np.float32)
+        y_onehot = np.zeros((number_samples, num_classes), dtype=np.float32)
         y_onehot[np.arange(number_samples), y_labels] = 1.0
 
         layers = [
-            LinearLayer(dimension_input, 1024),
+            Conv2DLayer(in_channels=C, out_channels=32, kernel_size=3, stride=1, padding=2),
+            Conv2DLayer(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=2),
             ReLULayer(),
-            LinearLayer(1024, 512),
+            Conv2DLayer(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=2),
+            Conv2DLayer(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=2),
             ReLULayer(),
-            LinearLayer(512, 256),
+            # PoolingLayer(kernel_size=2, stride=2),
+            LinearLayer(in_features=256 * 4 * 4, out_features=256),
             ReLULayer(),
-            LinearLayer(256, dimension_output),
+            LinearLayer(in_features=256, out_features=num_classes),
         ]
         self.layers = layers
 
         self.input_data_shape = x
         self.output_data_shape = y_onehot
+        self.norm_mean = mean
+        self.norm_std = std
 
 
     def save(self, filepath: str) -> None:
@@ -124,8 +131,6 @@ class Model:
                     self.output_data_shape,
                     self.loss
                 )
-
-
 
 
     def evaluate(self, batch_size: int = 512) -> float:

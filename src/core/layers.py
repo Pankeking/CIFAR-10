@@ -26,13 +26,13 @@ class Layer:
 
 
 class LinearLayer(Layer):
-    def __init__(self, in_features: int, out_features: int):
+    def __init__(self, in_channels: int, out_channels: int):
         super().__init__()
-        self.in_features = in_features
-        self.out_features = out_features
+        self.in_channels = in_channels
+        self.out_channels = out_channels
 
-        self.weights = glorot_uniform(in_features, out_features)
-        self.bias = np.zeros(out_features, dtype=np.float32)
+        self.weights = glorot_uniform(in_channels, out_channels, size=(out_channels, in_channels))
+        self.bias = np.zeros(out_channels, dtype=np.float32)
 
         self.grad_weights = np.zeros_like(self.weights)
         self.grad_bias = np.zeros_like(self.bias)
@@ -92,7 +92,9 @@ class Conv2DLayer(Layer):
         self.stride = stride
         self.padding = padding
 
-        self.weights = glorot_uniform(fan_in=in_channels * kernel_size * kernel_size, fan_out=out_channels)
+        fan_in = in_channels * kernel_size * kernel_size
+        fan_out = out_channels * kernel_size * kernel_size
+        self.weights = glorot_uniform(fan_in, fan_out, size=(out_channels, in_channels, kernel_size, kernel_size))
         self.bias = np.zeros(out_channels, dtype=np.float32)
 
         self.grad_weights = np.zeros_like(self.weights)
@@ -101,13 +103,17 @@ class Conv2DLayer(Layer):
         self.cache = None
 
     def forward(self, x: np.ndarray) -> np.ndarray:
-        self.cache = (x.shape, self.stride, self.padding)
-        N, C, H, W = x.shape
-        H_out = (H - 2 * self.padding - self.kernel_size) // self.stride + 1
-        W_out = (W - 2 * self.padding - self.kernel_size) // self.stride + 1
-        out = np.zeros((N, self.out_channels, H_out, W_out), dtype=np.float32)
-        self.cache = (x, out.shape)
-        return x
+        N, C_in, H, W = x.shape
+        K = self.kernel_size
+        S = self.stride
+        P = self.padding
+
+        if P > 0:
+            x_padded = np.pad(x, ((0,0),(0,0),(P,P),(P,P)), mode="constant")
+        else:
+            x_padded = x
+
+        
 
     def backward(self, dout: np.ndarray) -> np.ndarray:
         x, out_shape = self.cache
@@ -120,3 +126,11 @@ class Conv2DLayer(Layer):
     @property
     def grads(self) -> list[np.ndarray]:
         return [self.grad_weights, self.grad_bias]
+
+    def _pad(self, x: np.ndarray) -> np.ndarray:
+        if self.padding == 0:
+            return x
+        N, C, H, W = x.shape
+        padded = np.zeros((N, C, H + 2*self.padding, W + 2*self.padding), dtype=np.float32)
+        padded[:, :, self.padding:-self.padding, self.padding:-self.padding] = x
+        return padded
