@@ -1,6 +1,6 @@
 from typing import override
 import numpy as np
-from core.model import Model
+from core.model import NumpyModel
 from nn.losses import Loss
 from nn.optimizers import Optimizer
 from nn.math import glorot_uniform
@@ -8,7 +8,7 @@ from utils.helpers import print_metrics
 from nn.math import relu
 
 
-class HCModel(Model):
+class HCModel(NumpyModel):
     def __init__(self,
         learning_rate: float = 1e-2,
         weight_decay: float = 1e-3,

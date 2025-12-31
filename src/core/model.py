@@ -7,7 +7,7 @@ from data.data_loader import load_dataset
 from nn.losses import Loss, LossMode
 from nn.optimizers import Optimizer, OptimizerMode
 
-class Model:
+class NumpyModel:
     def __init__(self,
         loss: Loss = Loss(),
         optimizer: Optimizer = Optimizer(),
@@ -19,9 +19,9 @@ class Model:
         self.dataset_name = "cifar10"
 
 
-    def create_model(self, number_samples: int, dataset_name: str) -> None:
+    def create_model(self, number_samples: int, dataset_name: str, C_out: int = 32) -> None:
         self.dataset_name = dataset_name
-        print(f"Creating model with {self.dataset_name} dataset")
+        print(f"Creating model with {self.dataset_name} dataset and {C_out} output channels")
         x_train, y_train, _, _ = load_dataset(self.dataset_name)
 
         x = x_train[:number_samples]          # (N, 3072)
@@ -37,9 +37,6 @@ class Model:
 
         y_onehot = np.zeros((number_samples, num_classes), dtype=np.float32)
         y_onehot[np.arange(number_samples), y_labels] = 1.0
-
-        C_out = 32
-
 
         layers = [
             Conv2DLayer(in_channels=C, out_channels=C_out, kernel_size=3, stride=1, padding=1),
@@ -58,9 +55,9 @@ class Model:
             ReLULayer(),
             MaxPool2DLayer(kernel_size=2, stride=2),
             FlattenLayer(),
-            LinearLayer(in_channels=C_out*4*4*4, out_channels=C_out*8),
+            LinearLayer(in_channels=C_out*4*4*4*4, out_channels=C_out*4),
             ReLULayer(),
-            LinearLayer(in_channels=C_out*8, out_channels=num_classes),
+            LinearLayer(in_channels=C_out*4, out_channels=num_classes),
         ]
         self.layers = layers
 
