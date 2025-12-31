@@ -40,18 +40,11 @@ def cross_entropy_grad(logits: np.ndarray, labels: np.ndarray) -> np.ndarray:
 
 
 def im2col_nchw(x: np.ndarray, kernel_size: int, stride: int, padding: int) -> tuple[np.ndarray, int, int]:
-    """
-    x: (N, C, H, W)
-    returns:
-      X_col: (N * H_out * W_out, C * K * K)
-      H_out, W_out
-    """
     N, C, H, W = x.shape
     K = kernel_size
     S = stride
     P = padding
 
-    # pad input
     if P > 0:
         x_padded = np.pad(x, ((0, 0), (0, 0), (P, P), (P, P)), mode="constant")
     else:
@@ -61,18 +54,45 @@ def im2col_nchw(x: np.ndarray, kernel_size: int, stride: int, padding: int) -> t
     H_out = (H_p - K) // S + 1
     W_out = (W_p - K) // S + 1
 
-    # each row in cols is one (C*K*K) patch
     cols = np.zeros((N, C, K, K, H_out, W_out), dtype=x.dtype)
 
     for i in range(K):
         i_max = i + S * H_out
         for j in range(K):
             j_max = j + S * W_out
-            # x_padded: (N, C, H_p, W_p)
-            # slice: every S in spatial dims
             cols[:, :, i, j, :, :] = x_padded[:, :, i:i_max:S, j:j_max:S]
 
-    # rearrange to (N*H_out*W_out, C*K*K)
     cols = cols.reshape(N, C * K * K, H_out * W_out)
     cols = cols.transpose(0, 2, 1).reshape(N * H_out * W_out, C * K * K)
     return cols, H_out, W_out
+
+def col2im_nchw(cols: np.ndarray, x_shape: tuple[int, int, int, int], kernel_size: int, stride: int, padding: int) -> np.ndarray:
+    N, C, H, W = x_shape
+    K = kernel_size
+    S = stride
+    P = padding
+
+    H_p = H + 2 * P
+    W_p = W + 2 * P
+
+    H_out = (H_p - K) // S + 1
+    W_out = (W_p - K) // S + 1
+
+    cols = cols.reshape(N, H_out * W_out, C * K * K)
+    cols = cols.transpose(0, 2, 1)
+    cols = cols.reshape(N, C, K, K, H_out, W_out)
+
+    dx_padded = np.zeros((N, C, H_p, W_p), dtype=cols.dtype)
+
+    for i in range(K):
+        i_max = i + S * H_out
+        for j in range(K):
+            j_max = j + S * W_out
+            dx_padded[:, :, i:i_max:S, j:j_max:S] += cols[:, :, i, j, :, :]
+
+    if P > 0:
+        dx = dx_padded[:, :, P:-P, P:-P]
+    else:
+        dx = dx_padded
+
+    return dx
