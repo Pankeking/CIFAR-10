@@ -1,7 +1,7 @@
 import pickle
 import os
 import numpy as np
-from core.layers import LinearLayer, ReLULayer, Conv2DLayer
+from core.layers import LinearLayer, ReLULayer, Conv2DLayer, MaxPool2DLayer, FlattenLayer
 from utils.helpers import print_metrics
 from data.data_loader import load_dataset
 from nn.losses import Loss, LossMode
@@ -38,17 +38,29 @@ class Model:
         y_onehot = np.zeros((number_samples, num_classes), dtype=np.float32)
         y_onehot[np.arange(number_samples), y_labels] = 1.0
 
+        C_out = 32
+
+
         layers = [
-            Conv2DLayer(in_channels=C, out_channels=32, kernel_size=3, stride=1, padding=2),
-            Conv2DLayer(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=2),
+            Conv2DLayer(in_channels=C, out_channels=C_out, kernel_size=3, stride=1, padding=1),
             ReLULayer(),
-            Conv2DLayer(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=2),
-            Conv2DLayer(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=2),
+            Conv2DLayer(in_channels=C_out, out_channels=C_out*2, kernel_size=3, stride=1, padding=1),
             ReLULayer(),
-            # PoolingLayer(kernel_size=2, stride=2),
-            LinearLayer(in_features=256 * 4 * 4, out_features=256),
+            MaxPool2DLayer(kernel_size=2, stride=2),
+            Conv2DLayer(in_channels=C_out*2, out_channels=C_out*2, kernel_size=3, stride=1, padding=1),
             ReLULayer(),
-            LinearLayer(in_features=256, out_features=num_classes),
+            Conv2DLayer(in_channels=C_out*2, out_channels=C_out*4, kernel_size=3, stride=1, padding=1),
+            ReLULayer(),
+            MaxPool2DLayer(kernel_size=2, stride=2),
+            Conv2DLayer(in_channels=C_out*4, out_channels=C_out*4, kernel_size=3, stride=1, padding=1),
+            ReLULayer(),
+            Conv2DLayer(in_channels=C_out*4, out_channels=C_out*4, kernel_size=3, stride=1, padding=1),
+            ReLULayer(),
+            MaxPool2DLayer(kernel_size=2, stride=2),
+            FlattenLayer(),
+            LinearLayer(in_channels=C_out*4*4*4, out_channels=C_out*8),
+            ReLULayer(),
+            LinearLayer(in_channels=C_out*8, out_channels=num_classes),
         ]
         self.layers = layers
 
@@ -63,12 +75,12 @@ class Model:
         with open(os.path.join(model_directory, filepath), 'wb') as f:
             pickle.dump({
                 'layers': self.layers,
-                'input_data_shape': self.input_data_shape,
-                'output_data_shape': self.output_data_shape,
                 'loss_mode': self.loss.loss_mode,
                 'learning_rate': self.optimizer.learning_rate,
                 'optimizer': self.optimizer.optimizer_mode,
                 'dataset_name': self.dataset_name,
+                'norm_mean': self.norm_mean,
+                'norm_std': self.norm_std,
             }, f)
         print(f"Model saved to {os.path.join(model_directory, filepath)}")
 
@@ -78,12 +90,12 @@ class Model:
         with open(os.path.join(model_directory, filepath), 'rb') as f:
             data = pickle.load(f)
         self.layers = data['layers']
-        self.input_data_shape = data['input_data_shape']
-        self.output_data_shape = data['output_data_shape']
         self.loss = Loss(loss_mode=data.get('loss_mode', LossMode.CROSS_ENTROPY))
         self.optimizer = Optimizer(optimizer_mode=data.get('optimizer', OptimizerMode.SGD))
         self.optimizer.learning_rate = data.get('learning_rate', 1e-2)
         self.dataset_name = data.get('dataset_name', 'cifar10')
+        self.norm_mean = data.get('norm_mean', None)
+        self.norm_std = data.get('norm_std', None)
         print(f"Model loaded from {os.path.join(model_directory, filepath)} with dataset {self.dataset_name}")
             
 
@@ -91,10 +103,8 @@ class Model:
 
     def train(self, epochs: int, batch_size: int, metrics: bool = False):
         self._train(epochs, batch_size, metrics)
-        print_metrics(
-            self.output_data_shape,
-            self.loss
-        )
+        logits = self.predict_logits(self.input_data_shape)
+        print_metrics(logits, self.output_data_shape, self.loss)
     
     
     def _train(self, epochs: int, batch_size: int = 256, metrics: bool = False):
@@ -124,22 +134,17 @@ class Model:
                 self.optimizer.step(self.layers)
 
             if metrics:
-                self.y_prediction = self.predict_logits(self.input_data_shape)
+                logits = self.predict_logits(self.input_data_shape)
                 print(f"Epoch {epoch}:")
-                print_metrics(
-                    self.y_prediction,
-                    self.output_data_shape,
-                    self.loss
-                )
+                print_metrics(logits, self.output_data_shape, self.loss)
+
 
 
     def evaluate(self, batch_size: int = 512) -> float:
         _, _, x_test, y_test = load_dataset(self.dataset_name)
 
         # Use same normalization stats as training subset
-        mean = np.mean(self.input_data_shape, axis=0, keepdims=True)
-        std = np.std(self.input_data_shape, axis=0, keepdims=True) + 1e-8
-        x_test = (x_test - mean) / std
+        x_test = (x_test - self.norm_mean) / self.norm_std
 
         # Forward pass in batches to avoid RAM spikes
         n_test = x_test.shape[0]

@@ -2,7 +2,7 @@ import numpy as np
 
 def glorot_uniform(fan_in: int, fan_out: int, size: tuple[int, ...]) -> np.ndarray:
     limit = np.sqrt(6.0 / (fan_in + fan_out))
-    return np.random.uniform(-limit, limit, size=size, dtype=np.float32)
+    return np.random.uniform(-limit, limit, size=size).astype(np.float32)
 
 def sigmoid(x: np.ndarray) -> np.ndarray:
     x =np.clip(x, -50, 50)

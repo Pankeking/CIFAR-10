@@ -30,7 +30,7 @@ class LinearLayer(Layer):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        self.weights = glorot_uniform(in_channels, out_channels, size=(out_channels, in_channels))
+        self.weights = glorot_uniform(in_channels, out_channels, size=(in_channels, out_channels))
         self.bias = np.zeros(out_channels, dtype=np.float32)
 
         self.grad_weights = np.zeros_like(self.weights)
