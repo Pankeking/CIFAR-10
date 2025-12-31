@@ -1,6 +1,6 @@
 from typing import override
 import numpy as np
-from core.model import NumpyModel
+from core.numpy_model import NumpyModel
 from nn.losses import Loss
 from nn.optimizers import Optimizer
 from nn.math import glorot_uniform
