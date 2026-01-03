@@ -1,26 +1,31 @@
 from typing import override
+
 import numpy as np
+
 from core.numpy_model import NumpyModel
 from nn.losses import Loss
+from nn.math import glorot_uniform, relu
 from nn.optimizers import Optimizer
-from nn.math import glorot_uniform
 from utils.helpers import print_metrics
-from nn.math import relu
 
 
 class HCModel(NumpyModel):
     def __init__(self,
         learning_rate: float = 1e-2,
         weight_decay: float = 1e-3,
-        loss: Loss = Loss(),
-        optimizer: Optimizer = Optimizer(),
+        loss: Loss = None,
+        optimizer: Optimizer = None,
     ):
+        if loss is None:
+            loss = Loss()
+        if optimizer is None:
+            optimizer = Optimizer()
         super().__init__(learning_rate, weight_decay, loss, optimizer)
         self.activation_function = relu
 
     @override
     def create_model(self, number_samples: int, hidden_layer_size: int = 512) -> None:
-        print(f"Creating model with hardcoded network")
+        print("Creating model with hardcoded network")
         number_samples = 10000
         dimension_input = 32 * 32 * 3
         hidden_layer_size = 1024

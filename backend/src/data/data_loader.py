@@ -1,7 +1,9 @@
 import os
 import pickle
+
 import numpy as np
 from PIL import Image
+
 
 def load_dataset(dataset_name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     if dataset_name == "cifar10":
@@ -44,10 +46,10 @@ def _load_tiny_imagenet() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarra
     data_dir = os.path.join(datasets_dir, "tiny-imagenet-200")
     val_dir = os.path.join(data_dir, "val")
 
-    test_dir = os.path.join(data_dir, "test")
+    _test_dir = os.path.join(data_dir, "test")
     # read class ids
     wnids_file = os.path.join(data_dir, "wnids.txt")
-    with open(wnids_file, "r") as f:
+    with open(wnids_file) as f:
         wnids = [line.strip() for line in f.readlines()]
     wnid_to_idx = {wnid: idx for idx, wnid in enumerate(wnids)}
 
@@ -75,7 +77,7 @@ def _load_tiny_imagenet() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarra
     val_img_dir = os.path.join(val_dir, "images")
     ann_path = os.path.join(val_dir, "val_annotations.txt")
     fname_to_wnid = {}
-    with open(ann_path, "r") as f:
+    with open(ann_path) as f:
         for line in f:
             parts = line.strip().split("\t")
             fname, wnid = parts[0], parts[1]

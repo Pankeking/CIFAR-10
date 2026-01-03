@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def glorot_uniform(fan_in: int, fan_out: int, size: tuple[int, ...]) -> np.ndarray:
     limit = np.sqrt(6.0 / (fan_in + fan_out))
     return np.random.uniform(-limit, limit, size=size).astype(np.float32)

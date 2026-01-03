@@ -1,0 +1,33 @@
+[project]
+name = "n"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi[standard]>=0.128.0",
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.0",
+    "pillow>=12.0.0",
+    "python-multipart>=0.0.21",
+    "torch>=2.9.1",
+    "torchvision>=0.24.1",
+    "tqdm>=4.67.1",
+    "uvicorn>=0.40.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.10",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"  # Adjust
+select = ["E", "F", "I", "UP", "B", "Q"]
+ignore = ["E501"]  # Line too long
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

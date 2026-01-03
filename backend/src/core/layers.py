@@ -1,5 +1,7 @@
 import numpy as np
-from nn.math import glorot_uniform, relu, relu_derivative, im2col_nchw, col2im_nchw
+
+from nn.math import col2im_nchw, glorot_uniform, im2col_nchw, relu, relu_derivative
+
 
 class Layer:
     def __init__(self):

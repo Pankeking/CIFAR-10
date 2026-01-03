@@ -1,17 +1,30 @@
-import pickle
 import os
+import pickle
+
 import numpy as np
-from core.layers import LinearLayer, ReLULayer, Conv2DLayer, MaxPool2DLayer, FlattenLayer
-from utils.helpers import print_metrics
+
+from core.layers import (
+    Conv2DLayer,
+    FlattenLayer,
+    LinearLayer,
+    MaxPool2DLayer,
+    ReLULayer,
+)
 from data.data_loader import load_dataset
 from nn.losses import Loss, LossMode
 from nn.optimizers import Optimizer, OptimizerMode
+from utils.helpers import print_metrics
+
 
 class NumpyModel:
     def __init__(self,
-        loss: Loss = Loss(),
-        optimizer: Optimizer = Optimizer(),
+        loss: Loss = None,
+        optimizer: Optimizer = None,
     ):
+        if loss is None:
+            loss = Loss()
+        if optimizer is None:
+            optimizer = Optimizer()
         self.input_data_shape: np.ndarray | None = None
         self.output_data_shape: np.ndarray | None = None
         self.loss = loss
@@ -69,30 +82,30 @@ class NumpyModel:
 
     def save(self, filepath: str) -> None:
         model_directory = "models"
-        with open(os.path.join(model_directory, filepath), 'wb') as f:
+        with open(os.path.join(model_directory, filepath), "wb") as f:
             pickle.dump({
-                'layers': self.layers,
-                'loss_mode': self.loss.loss_mode,
-                'learning_rate': self.optimizer.learning_rate,
-                'optimizer': self.optimizer.optimizer_mode,
-                'dataset_name': self.dataset_name,
-                'norm_mean': self.norm_mean,
-                'norm_std': self.norm_std,
+                "layers": self.layers,
+                "loss_mode": self.loss.loss_mode,
+                "learning_rate": self.optimizer.learning_rate,
+                "optimizer": self.optimizer.optimizer_mode,
+                "dataset_name": self.dataset_name,
+                "norm_mean": self.norm_mean,
+                "norm_std": self.norm_std,
             }, f)
         print(f"Model saved to {os.path.join(model_directory, filepath)}")
 
 
     def load(self, filepath: str) -> None:
         model_directory = "models"
-        with open(os.path.join(model_directory, filepath), 'rb') as f:
+        with open(os.path.join(model_directory, filepath), "rb") as f:
             data = pickle.load(f)
-        self.layers = data['layers']
-        self.loss = Loss(loss_mode=data.get('loss_mode', LossMode.CROSS_ENTROPY))
-        self.optimizer = Optimizer(optimizer_mode=data.get('optimizer', OptimizerMode.SGD))
-        self.optimizer.learning_rate = data.get('learning_rate', 1e-2)
-        self.dataset_name = data.get('dataset_name', 'cifar10')
-        self.norm_mean = data.get('norm_mean', None)
-        self.norm_std = data.get('norm_std', None)
+        self.layers = data["layers"]
+        self.loss = Loss(loss_mode=data.get("loss_mode", LossMode.CROSS_ENTROPY))
+        self.optimizer = Optimizer(optimizer_mode=data.get("optimizer", OptimizerMode.SGD))
+        self.optimizer.learning_rate = data.get("learning_rate", 1e-2)
+        self.dataset_name = data.get("dataset_name", "cifar10")
+        self.norm_mean = data.get("norm_mean", None)
+        self.norm_std = data.get("norm_std", None)
         print(f"Model loaded from {os.path.join(model_directory, filepath)} with dataset {self.dataset_name}")
             
 

@@ -8,8 +8,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from core.torch_train import train_one_epoch, evaluate
 from core.res_block import ResBlock
+from core.torch_train import evaluate, train_one_epoch
 
 
 class TorchModel(nn.Module):

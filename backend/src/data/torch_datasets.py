@@ -1,16 +1,16 @@
 import os
-from typing import Tuple
+from typing import tuple
 
 import torch
-from torch.utils.data import DataLoader, Subset, Dataset
-from torchvision import datasets, transforms
 from PIL import Image
+from torch.utils.data import DataLoader, Dataset, Subset
+from torchvision import datasets, transforms
 
 
 def get_cifar10_loaders(data_root: str,
                         batch_size: int,
                         device: torch.device,
-                        num_workers: int = 4) -> Tuple[DataLoader, DataLoader]:
+                        num_workers: int = 4) -> tuple[DataLoader, DataLoader]:
     normalize = transforms.Normalize(
         mean=[0.4914, 0.4822, 0.4465],
         std=[0.2023, 0.1994, 0.2010],
@@ -68,7 +68,7 @@ class TinyImageNetValDataset(Dataset):
         # val_annotations.txt format:
         # <image_name>\t<wnid>\t<x>\t<y>\t<w>\t<h>
         img_to_wnid: dict[str, str] = {}
-        with open(ann_file, "r") as f:
+        with open(ann_file) as f:
             for line in f:
                 parts = line.strip().split("\t")
                 if len(parts) >= 2:
@@ -99,7 +99,7 @@ def get_tiny_imagenet_loaders(data_root: str,
                               batch_size: int,
                               device: torch.device,
                               max_samples: int | None = None,
-                              num_workers: int = 4) -> Tuple[DataLoader, DataLoader]:
+                              num_workers: int = 4) -> tuple[DataLoader, DataLoader]:
     normalize = transforms.Normalize(
         mean=[0.4802, 0.4481, 0.3975],
         std=[0.2302, 0.2265, 0.2262],

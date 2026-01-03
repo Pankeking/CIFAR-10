@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class ResBlock(nn.Module):
     def __init__(self, in_ch: int, out_ch: int, stride: int = 1):
         super().__init__()

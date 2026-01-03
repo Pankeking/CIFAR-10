@@ -1,7 +1,8 @@
 # data/tiny_imagenet_torch.py
+import torch
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
-import torch
+
 
 def get_tiny_imagenet_loaders(data_root: str, batch_size: int, device,
                               num_workers: int = 4, max_samples: int | None = None):

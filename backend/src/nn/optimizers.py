@@ -1,6 +1,9 @@
-import numpy as np
 from enum import Enum
+
+import numpy as np
+
 from core.layers import Layer
+
 
 class OptimizerMode(Enum):
     ADAM = "adam"

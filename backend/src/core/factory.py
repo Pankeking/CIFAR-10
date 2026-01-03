@@ -1,9 +1,11 @@
+import torch.optim as optim
+
+from core.hc_model import HCModel
 from core.numpy_model import NumpyModel
 from core.torch_model import TorchModel
-from core.hc_model import HCModel
 from nn.losses import Loss, LossMode
 from nn.optimizers import Optimizer, OptimizerMode
-import torch.optim as optim
+
 
 def build_model(backend: str, optimizer: Optimizer, loss_mode: LossMode):
     loss = Loss(loss_mode=loss_mode)

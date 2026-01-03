@@ -1,14 +1,15 @@
 import argparse
+
 import torch
+
+from core.factory import build_model, build_torch_optimizer
+from core.hc_model import HCModel
 from core.numpy_model import NumpyModel
 from core.torch_model import TorchModel
-from core.hc_model import HCModel
-from core.factory import build_model, build_torch_optimizer
-from ui.view import run_view
+from data.torch_datasets import get_cifar10_loaders, get_tiny_imagenet_loaders
 from nn.losses import LossMode
 from nn.optimizers import Optimizer, OptimizerMode
-from data.torch_datasets import get_cifar10_loaders, get_tiny_imagenet_loaders
-
+from ui.view import run_view
 
 
 def main():
@@ -57,7 +58,7 @@ def main():
         learning_rate = 1e-3
         weight_decay = 1e-4
         number_samples = 100_000
-        epochs = 5
+        epochs = 100
         batch_size = 128
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
@@ -69,8 +70,8 @@ def main():
     optimizer_config = Optimizer(
         optimizer_mode=optimizer_mode,
         weight_decay=weight_decay,
-        start_epoch_decay=35,
-        decay_rate=0.98,
+        start_epoch_decay=60,
+        decay_rate=0.97,
         beta1=0.9,
         beta2=0.999,
         epsilon=1e-8,

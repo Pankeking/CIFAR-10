@@ -1,6 +1,7 @@
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 from data.data_loader import load_dataset
 from nn.math import softmax
@@ -11,7 +12,7 @@ def _load_tiny_imagenet_class_ids(datasets_dir: str = "datasets") -> list[str]:
     wnids_file = os.path.join(data_dir, "wnids.txt")
     if not os.path.exists(wnids_file):
         return [f"class_{i}" for i in range(200)]
-    with open(wnids_file, "r") as f:
+    with open(wnids_file) as f:
         wnids = [line.strip() for line in f.readlines()]
     return wnids
 
@@ -22,7 +23,7 @@ def _load_wnid_to_words(datasets_dir: str = "datasets") -> dict[str, str]:
     mapping: dict[str, str] = {}
     if not os.path.exists(words_file):
         return mapping
-    with open(words_file, "r") as f:
+    with open(words_file) as f:
         for line in f:
             parts = line.strip().split("\t")
             if len(parts) >= 2:

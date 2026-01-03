@@ -1,4 +1,5 @@
 import os
+
 import numpy as np
 
 _CACHE_DIR = "norm_cache"
