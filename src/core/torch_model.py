@@ -9,6 +9,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from core.torch_train import train_one_epoch, evaluate
+from core.res_block import ResBlock
 
 
 class TorchModel(nn.Module):
@@ -30,26 +31,23 @@ class TorchModel(nn.Module):
 
     def _build_features(self, C_in: int, C_out: int):
         return nn.Sequential(
-            # Block 1
-            nn.Conv2d(C_in, C_out, kernel_size=3, padding=1),
+            nn.Conv2d(C_in, C_out, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(C_out),
             nn.ReLU(inplace=True),
-            nn.Conv2d(C_out, C_out * 2, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2),
 
-            # Block 2
-            nn.Conv2d(C_out * 2, C_out * 2, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(C_out * 2, C_out * 4, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2),
+            ResBlock(C_out, C_out),
+            ResBlock(C_out, C_out * 2, stride=2),
 
-            # Block 3
-            nn.Conv2d(C_out * 4, C_out * 4, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(C_out * 4, C_out * 4, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2),
+            ResBlock(C_out * 2, C_out * 2, stride=2),
+            ResBlock(C_out * 2, C_out * 4, stride=2),
+            #
+            ResBlock(C_out * 4, C_out * 4),
+            ResBlock(C_out * 4, C_out * 8, stride=2),
+
+            ResBlock(C_out * 8, C_out * 8),
+            ResBlock(C_out * 8, C_out * 8, stride=2),
+
+            nn.AdaptiveAvgPool2d(1),
         )
 
     def init_head(self, input_shape):
@@ -71,6 +69,7 @@ class TorchModel(nn.Module):
             nn.Flatten(),
             nn.Linear(flat_dim, self.base_channels * 4),
             nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
             nn.Linear(self.base_channels * 4, self.num_classes),
         )
 
@@ -95,7 +94,7 @@ class TorchModel(nn.Module):
                     optimizer_config,
                     device,
                     metrics: bool = False):
-        self.to(device)
+        self.train()
         for epoch in range(epochs):
             if hasattr(optimizer_config, "start_epoch_decay") and epoch >= optimizer_config.start_epoch_decay:
                 decay_epochs = epoch - optimizer_config.start_epoch_decay + 1
@@ -116,10 +115,6 @@ class TorchModel(nn.Module):
     # -------------------- VIEWER COMPATIBILITY -------------------- #
 
     def predict_logits(self, x: np.ndarray) -> np.ndarray:
-        """
-        For ui.view: x is numpy (N, C, H, W), unnormalized.
-        This uses the saved norm_mean/std if present.
-        """
         self.eval()
         with torch.no_grad():
             x_tensor = torch.from_numpy(x).float().to(self.device)
@@ -167,20 +162,15 @@ class TorchModel(nn.Module):
         self.norm_mean = ckpt.get("norm_mean", None)
         self.norm_std = ckpt.get("norm_std", None)
 
-        # Ensure we have features/classifier created before loading weights.
-        # We don't know H,W here, so we rely on a dummy input from a standard size:
-        # CIFAR-10: 32x32, Tiny ImageNet: 64x64.
         if self.dataset_name == "tiny_imagenet":
             H = W = 64
         else:
             H = W = 32
 
-        # Build layers lazily, then load weights
         self.to(torch.device("cpu"))
         dummy = torch.zeros(1, 3, H, W)
-        _ = self(dummy)  # triggers init_head -> creates features/classifier
+        _ = self(dummy)
 
-        # Now load weights; strict=False to ignore any extra/missing keys
         missing, unexpected = self.load_state_dict(ckpt["model_state_dict"], strict=False)
 
         if missing:

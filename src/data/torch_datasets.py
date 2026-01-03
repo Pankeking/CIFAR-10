@@ -100,22 +100,15 @@ def get_tiny_imagenet_loaders(data_root: str,
                               device: torch.device,
                               max_samples: int | None = None,
                               num_workers: int = 4) -> Tuple[DataLoader, DataLoader]:
-    """
-    Tiny ImageNet loaders for torch backend.
-
-    Train:
-      - datasets.ImageFolder on train/<wnid>/images
-    Val:
-      - TinyImageNetValDataset using val/images + val_annotations.txt
-      - Uses the same class_to_idx (wnid -> idx) as train
-    """
     normalize = transforms.Normalize(
         mean=[0.4802, 0.4481, 0.3975],
         std=[0.2302, 0.2265, 0.2262],
     )
 
     train_tf = transforms.Compose([
-        transforms.Resize(64),
+        transforms.RandomResizedCrop(64, scale=(0.8, 1.0)),
+        transforms.RandomHorizontalFlip(),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
         transforms.ToTensor(),
         normalize,
     ])

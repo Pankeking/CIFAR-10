@@ -54,11 +54,11 @@ def main():
         batch_size = 128
     elif dataset_name == "tiny_imagenet":
         C_out = 64
-        learning_rate = 3e-3
+        learning_rate = 1e-3
         weight_decay = 1e-4
         number_samples = 100_000
-        epochs = 40
-        batch_size = 256
+        epochs = 5
+        batch_size = 128
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
     file_extension = ".pt" if backend == "torch" else ".pkl"
@@ -69,7 +69,7 @@ def main():
     optimizer_config = Optimizer(
         optimizer_mode=optimizer_mode,
         weight_decay=weight_decay,
-        start_epoch_decay=30,
+        start_epoch_decay=35,
         decay_rate=0.98,
         beta1=0.9,
         beta2=0.999,
@@ -98,20 +98,20 @@ def main():
             else:
                 raise ValueError(f"Torch backend not implemented for dataset: {dataset_name}")
 
-            # 1) Create model with correct num_classes
             model = TorchModel(in_channels=3, num_classes=num_classes, base_channels=C_out)
             model.dataset_name = dataset_name
             model.to(device)
+            model.train()
 
-            # 2) Run one dummy forward to build features/head so parameters exist
             first_batch, _ = next(iter(train_loader))
-            first_batch = first_batch.to(device)
-            _ = model(first_batch)  # triggers lazy init of layers
+            _ = model(first_batch.to(device))
 
-            # 3) Now build optimizer
+            num_params = sum(p.numel() for p in model.parameters())
+            if num_params == 0:
+                raise RuntimeError("Model has no trainable parameters!")
+
             torch_optimizer = build_torch_optimizer(model, optimizer_config)
 
-            # 4) Train
             model.train_torch(
                 epochs=epochs,
                 train_loader=train_loader,
@@ -126,7 +126,6 @@ def main():
             model.evaluate_torch(test_loader, device=device)
 
         else:
-            # NumPy / HC path unchanged
             model = build_model(backend, optimizer_config, loss_mode)
             model.create_model(
                 number_samples=number_samples,

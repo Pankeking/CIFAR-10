@@ -18,7 +18,10 @@ def build_model(backend: str, optimizer: Optimizer, loss_mode: LossMode):
 
 
 def build_torch_optimizer(model, optimizer_config):
-    params = model.parameters()
+    params = list(model.parameters())
+    
+    if len(params) == 0:
+        raise RuntimeError("Model has no parameters! Make sure lazy initialization has completed.")
     
     if optimizer_config.optimizer_mode == OptimizerMode.ADAM:
         optimizer = optim.Adam(
