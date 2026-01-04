@@ -67,14 +67,14 @@ def main():
         C_out = 64
         learning_rate = 1e-3
         weight_decay = 1e-4
-        number_samples = 100_000
-        epochs = 100
+        number_samples = 1_000
+        epochs = 3
         batch_size = 128
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
     file_extension = ".pt" if backend == "torch" else ".pkl"
 
-    model_filename = f"{dataset_name}_model_{loss_mode.value}_{number_samples}_{optimizer_mode.value}_{epochs}{file_extension}"
+    model_filename = f"dataset_{dataset_name}-model_{loss_mode.value}-samples_{number_samples}-epochs_{epochs}{file_extension}"
 
     optimizer_config = Optimizer(
         optimizer_mode=optimizer_mode,
