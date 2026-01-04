@@ -18,16 +18,18 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "ruff>=0.14.10",
+    "ruff[uv]>=0.14.10",
 ]
 
 [tool.ruff]
 line-length = 88
 target-version = "py39"  # Adjust
-select = ["E", "F", "I", "UP", "B", "Q"]
-ignore = ["E501"]  # Line too long
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "Q"]
+ignore = ["E501"]  # Line too long
+

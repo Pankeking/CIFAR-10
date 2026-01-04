@@ -508,7 +508,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "ruff", specifier = ">=0.14.10" }]
+dev = [{ name = "ruff", extras = ["uv"], specifier = ">=0.14.10" }]
 
 [[package]]
 name = "networkx"
