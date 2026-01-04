@@ -53,7 +53,7 @@ def _load_tiny_imagenet() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarra
     # read class ids
     wnids_file = os.path.join(data_dir, "wnids.txt")
     with open(wnids_file) as f:
-        wnids = [line.strip() for line in f.readlines()]
+        wnids = sorted([line.strip() for line in f.readlines()])
     wnid_to_idx = {wnid: idx for idx, wnid in enumerate(wnids)}
 
     # load train images

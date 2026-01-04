@@ -17,8 +17,8 @@ export interface ImageInfo {
 }
 
 export interface PredictInfo {
-    pred_label: number;
-    true_label: number;
+    pred_label: string;
+    true_label: string;
     probs: Record<string, number>;
 }
 

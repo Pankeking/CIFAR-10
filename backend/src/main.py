@@ -67,8 +67,8 @@ def main():
         C_out = 64
         learning_rate = 1e-3
         weight_decay = 1e-4
-        number_samples = 1_000
-        epochs = 3
+        number_samples = 100_000
+        epochs = 100
         batch_size = 128
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")

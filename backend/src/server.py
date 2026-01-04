@@ -41,8 +41,8 @@ class ImageResponse(BaseResponse):
     image: ImageInfo
 
 class PredictInfo(BaseModel):
-    pred_label: int
-    true_label: int
+    pred_label: str
+    true_label: str
     probs: dict[str, float]
 
 class PredictResponse(BaseResponse):
@@ -162,7 +162,7 @@ def _get_or_load_model(model_filename: str, datasets_root: str) -> tuple[TorchMo
     if dataset_name == "cifar10":
         classes = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
     else:
-        wnids = _load_tiny_imagenet_class_ids(datasets_root)
+        wnids = sorted(_load_tiny_imagenet_class_ids(datasets_root))
         wnid_to_words = _load_wnid_to_words(datasets_root)
         classes = [wnid_to_words.get(wnid, wnid) for wnid in wnids]
     _classes_cache[dataset_name] = classes
@@ -182,7 +182,9 @@ def predict(idx: int, model_filename: str = Query(..., description="e.g. dataset
     logits = model.predict_logits(x_single)[0]
     probs = softmax(logits[None, :])[0]
     pred_idx = int(np.argmax(probs))
+    pred_name = classes[pred_idx].capitalize()
     true_idx = int(y_test[idx])
+    true_name = classes[true_idx].capitalize()
     
     top3_idx = np.argsort(probs)[-3:][::-1]
     top3_probs = {classes[int(i)]: float(probs[int(i)]) for i in top3_idx}
@@ -190,7 +192,7 @@ def predict(idx: int, model_filename: str = Query(..., description="e.g. dataset
     return PredictResponse(
         status="success",
         message="prediction retrieved successfully",
-        prediction=PredictInfo(pred_label=pred_idx, true_label=true_idx, probs=top3_probs)
+        prediction=PredictInfo(pred_label=pred_name, true_label=true_name, probs=top3_probs)
     )
 
 @router.get("/image/{idx}", response_model=ImageResponse)
