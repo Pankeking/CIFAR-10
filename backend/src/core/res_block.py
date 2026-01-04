@@ -14,7 +14,7 @@ class ResBlock(nn.Module):
         if stride != 1 or in_ch != out_ch:
             self.shortcut = nn.Sequential(
                 nn.Conv2d(in_ch, out_ch, 1, stride=stride, bias=False),
-                nn.BatchNorm2d(out_ch)
+                nn.BatchNorm2d(out_ch),
             )
 
     def forward(self, x):

@@ -14,6 +14,7 @@ class LossMode(Enum):
     MEAN_SQUARED_ERROR = "mse"
     CROSS_ENTROPY = "cross_entropy"
 
+
 class Loss:
     def __init__(self, loss_mode: LossMode = LossMode.CROSS_ENTROPY):
         self.loss_mode = loss_mode

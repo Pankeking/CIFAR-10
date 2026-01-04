@@ -5,7 +5,9 @@ import numpy as np
 from PIL import Image
 
 
-def load_dataset(dataset_name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def load_dataset(
+    dataset_name: str,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     if dataset_name == "cifar10":
         return _load_cifar10()
     elif dataset_name == "tiny_imagenet":
@@ -17,7 +19,7 @@ def load_dataset(dataset_name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray,
 def _load_cifar_batch(path: str) -> tuple[np.ndarray, np.ndarray]:
     with open(path, "rb") as f:
         batch = pickle.load(f, encoding="latin1")
-    data = batch["data"]          # shape (10000, 3072), uint8
+    data = batch["data"]  # shape (10000, 3072), uint8
     labels = np.array(batch["labels"], dtype=np.int64)  # shape (10000,)
     data = data.reshape(-1, 3, 32, 32).astype(np.float32) / 255.0
     return data, labels
@@ -34,12 +36,13 @@ def _load_cifar10() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         x, y = _load_cifar_batch(path)
         xs.append(x)
         ys.append(y)
-    x_train = np.concatenate(xs, axis=0)   # (50000, 3072)
-    y_train = np.concatenate(ys, axis=0)   # (50000,)
+    x_train = np.concatenate(xs, axis=0)  # (50000, 3072)
+    y_train = np.concatenate(ys, axis=0)  # (50000,)
 
     x_test, y_test = _load_cifar_batch(os.path.join(data_dir, "test_batch"))
 
     return x_train, y_train, x_test, y_test
+
 
 def _load_tiny_imagenet() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     datasets_dir = "datasets"
@@ -66,7 +69,7 @@ def _load_tiny_imagenet() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarra
             image = Image.open(image_path).convert("RGB")
             arr = np.asarray(image, dtype=np.float32) / 255.0
             arr = arr.transpose(2, 0, 1)
-            train_images.append(arr)      # (3, 64, 64)
+            train_images.append(arr)  # (3, 64, 64)
             train_labels.append(wnid_to_idx[wnid])
 
     x_train = np.stack(train_images, axis=0)

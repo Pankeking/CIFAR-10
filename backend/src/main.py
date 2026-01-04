@@ -18,13 +18,23 @@ def main():
     parser.add_argument("--evaluate", action="store_true", help="Evaluate the model")
     parser.add_argument("--predict", action="store_true", help="Run interactive viewer")
     parser.add_argument("--start", type=int, default=0, help="Start index in test set")
-    parser.add_argument("--dataset", type=str, default="tiny_imagenet", help="Dataset to use")
-    parser.add_argument("--backend", type=str, default="torch",
-                        choices=["numpy", "torch", "hc"],
-                        help="Backend to use: numpy or torch or hc")
-    parser.add_argument("--device", type=str, default=None,
-                        choices=["cpu", "mps", "cuda"], 
-                        help="Device to use (auto-detects mps/cuda if not specified)")
+    parser.add_argument(
+        "--dataset", type=str, default="tiny_imagenet", help="Dataset to use"
+    )
+    parser.add_argument(
+        "--backend",
+        type=str,
+        default="torch",
+        choices=["numpy", "torch", "hc"],
+        help="Backend to use: numpy or torch or hc",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default=None,
+        choices=["cpu", "mps", "cuda"],
+        help="Device to use (auto-detects mps/cuda if not specified)",
+    )
 
     args = parser.parse_args()
     dataset_name = args.dataset
@@ -66,7 +76,6 @@ def main():
 
     model_filename = f"{dataset_name}_model_{loss_mode.value}_{number_samples}_{optimizer_mode.value}_{epochs}{file_extension}"
 
-
     optimizer_config = Optimizer(
         optimizer_mode=optimizer_mode,
         weight_decay=weight_decay,
@@ -85,7 +94,9 @@ def main():
         if backend == "torch":
             # Torch-only path
             if dataset_name == "cifar10":
-                train_loader, test_loader = get_cifar10_loaders("datasets", batch_size, device)
+                train_loader, test_loader = get_cifar10_loaders(
+                    "datasets", batch_size, device
+                )
                 num_classes = 10
             elif dataset_name == "tiny_imagenet":
                 train_loader, test_loader = get_tiny_imagenet_loaders(
@@ -94,12 +105,20 @@ def main():
                     device,
                     max_samples=number_samples,
                 )
-                base_ds = train_loader.dataset.dataset if hasattr(train_loader.dataset, "dataset") else train_loader.dataset
+                base_ds = (
+                    train_loader.dataset.dataset
+                    if hasattr(train_loader.dataset, "dataset")
+                    else train_loader.dataset
+                )
                 num_classes = len(base_ds.classes)
             else:
-                raise ValueError(f"Torch backend not implemented for dataset: {dataset_name}")
+                raise ValueError(
+                    f"Torch backend not implemented for dataset: {dataset_name}"
+                )
 
-            model = TorchModel(in_channels=3, num_classes=num_classes, base_channels=C_out)
+            model = TorchModel(
+                in_channels=3, num_classes=num_classes, base_channels=C_out
+            )
             model.dataset_name = dataset_name
             model.to(device)
             model.train()
@@ -142,7 +161,6 @@ def main():
             model.evaluate()
             model.evaluate_on_train()
 
-
     elif args.evaluate:
         if backend == "torch":
             if dataset_name == "cifar10":
@@ -158,9 +176,13 @@ def main():
                 base_ds = test_loader.dataset
                 num_classes = len(base_ds.classes)
             else:
-                raise ValueError(f"Torch backend not implemented for dataset: {dataset_name}")
+                raise ValueError(
+                    f"Torch backend not implemented for dataset: {dataset_name}"
+                )
 
-            model = TorchModel(in_channels=3, num_classes=num_classes, base_channels=C_out)
+            model = TorchModel(
+                in_channels=3, num_classes=num_classes, base_channels=C_out
+            )
             model.load(model_filename)
             model.to(device)
             model.evaluate_torch(test_loader, device=device)

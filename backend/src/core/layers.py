@@ -32,14 +32,15 @@ class LinearLayer(Layer):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        self.weights = glorot_uniform(in_channels, out_channels, size=(in_channels, out_channels))
+        self.weights = glorot_uniform(
+            in_channels, out_channels, size=(in_channels, out_channels)
+        )
         self.bias = np.zeros(out_channels, dtype=np.float32)
 
         self.grad_weights = np.zeros_like(self.weights)
         self.grad_bias = np.zeros_like(self.bias)
 
         self.cache = None
-
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         self.cache = x
@@ -70,7 +71,7 @@ class ReLULayer(Layer):
     def forward(self, x: np.ndarray) -> np.ndarray:
         self.cache = x
         return relu(x)
-        
+
     def backward(self, dout: np.ndarray) -> np.ndarray:
         x = self.cache
         return dout * relu_derivative(x)
@@ -85,7 +86,14 @@ class ReLULayer(Layer):
 
 
 class Conv2DLayer(Layer):
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int, stride: int = 1, padding: int = 0):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int = 1,
+        padding: int = 0,
+    ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -95,7 +103,9 @@ class Conv2DLayer(Layer):
 
         fan_in = in_channels * kernel_size * kernel_size
         fan_out = out_channels * kernel_size * kernel_size
-        self.weights = glorot_uniform(fan_in, fan_out, size=(out_channels, in_channels, kernel_size, kernel_size))
+        self.weights = glorot_uniform(
+            fan_in, fan_out, size=(out_channels, in_channels, kernel_size, kernel_size)
+        )
         self.bias = np.zeros(out_channels, dtype=np.float32)
 
         self.grad_weights = np.zeros_like(self.weights)
@@ -104,7 +114,9 @@ class Conv2DLayer(Layer):
         self.cache = None
 
     def forward(self, x: np.ndarray) -> np.ndarray:
-        X_col, H_out, W_out = im2col_nchw(x, self.kernel_size, self.stride, self.padding)
+        X_col, H_out, W_out = im2col_nchw(
+            x, self.kernel_size, self.stride, self.padding
+        )
 
         W_col = self.weights.reshape(self.out_channels, -1).T
 
@@ -119,7 +131,7 @@ class Conv2DLayer(Layer):
         self.cache = (X_col, x.shape, H_out, W_out)
 
         return out
-        
+
     def backward(self, dout: np.ndarray) -> np.ndarray:
         X_col, x_padded_shape, H_out, W_out = self.cache
         N, C_out, H_out, W_out = dout.shape
@@ -195,7 +207,7 @@ class MaxPool2DLayer(Layer):
 
                 patch = x[:, :, h_start:h_end, w_start:w_end]  # (N, C, K, K)
                 max_vals = patch.max(axis=(2, 3), keepdims=True)  # (N, C, 1, 1)
-                mask = (patch == max_vals)  # (N, C, K, K)
+                mask = patch == max_vals  # (N, C, K, K)
 
                 dx[:, :, h_start:h_end, w_start:w_end] += (
                     mask * dout[:, :, i, j][:, :, None, None]
@@ -210,6 +222,7 @@ class MaxPool2DLayer(Layer):
     @property
     def grads(self):
         return []
+
 
 class AvgPool2DLayer(Layer):
     def __init__(self, kernel_size: int = 2, stride: int = 2):
@@ -272,6 +285,7 @@ class AvgPool2DLayer(Layer):
     @property
     def grads(self):
         return []
+
 
 class FlattenLayer(Layer):
     def __init__(self):

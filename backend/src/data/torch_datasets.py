@@ -7,27 +7,34 @@ from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision import datasets, transforms
 
 
-def get_cifar10_loaders(data_root: str,
-                        batch_size: int,
-                        device: torch.device,
-                        num_workers: int = 4) -> tuple[DataLoader, DataLoader]:
+def get_cifar10_loaders(
+    data_root: str, batch_size: int, device: torch.device, num_workers: int = 4
+) -> tuple[DataLoader, DataLoader]:
     normalize = transforms.Normalize(
         mean=[0.4914, 0.4822, 0.4465],
         std=[0.2023, 0.1994, 0.2010],
     )
-    train_tf = transforms.Compose([
-        transforms.ToTensor(),
-        normalize,
-    ])
-    test_tf = transforms.Compose([
-        transforms.ToTensor(),
-        normalize,
-    ])
+    train_tf = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            normalize,
+        ]
+    )
+    test_tf = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            normalize,
+        ]
+    )
 
-    train_ds = datasets.CIFAR10(root=data_root, train=True, download=True, transform=train_tf)
-    test_ds  = datasets.CIFAR10(root=data_root, train=False, download=True, transform=test_tf)
+    train_ds = datasets.CIFAR10(
+        root=data_root, train=True, download=True, transform=train_tf
+    )
+    test_ds = datasets.CIFAR10(
+        root=data_root, train=False, download=True, transform=test_tf
+    )
 
-    use_pin = (device.type == "cuda")
+    use_pin = device.type == "cuda"
 
     train_loader = DataLoader(
         train_ds,
@@ -44,8 +51,6 @@ def get_cifar10_loaders(data_root: str,
         pin_memory=use_pin,
     )
     return train_loader, test_loader
-
-
 
 
 class TinyImageNetValDataset(Dataset):
@@ -95,31 +100,39 @@ class TinyImageNetValDataset(Dataset):
         return img, label
 
 
-def get_tiny_imagenet_loaders(data_root: str,
-                              batch_size: int,
-                              device: torch.device,
-                              max_samples: int | None = None,
-                              num_workers: int = 4) -> tuple[DataLoader, DataLoader]:
+def get_tiny_imagenet_loaders(
+    data_root: str,
+    batch_size: int,
+    device: torch.device,
+    max_samples: int | None = None,
+    num_workers: int = 4,
+) -> tuple[DataLoader, DataLoader]:
     normalize = transforms.Normalize(
         mean=[0.4802, 0.4481, 0.3975],
         std=[0.2302, 0.2265, 0.2262],
     )
 
-    train_tf = transforms.Compose([
-        transforms.RandomResizedCrop(64, scale=(0.8, 1.0)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-        transforms.ToTensor(),
-        normalize,
-    ])
-    test_tf = transforms.Compose([
-        transforms.Resize(64),
-        transforms.ToTensor(),
-        normalize,
-    ])
+    train_tf = transforms.Compose(
+        [
+            transforms.RandomResizedCrop(64, scale=(0.8, 1.0)),
+            transforms.RandomHorizontalFlip(),
+            transforms.ColorJitter(
+                brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1
+            ),
+            transforms.ToTensor(),
+            normalize,
+        ]
+    )
+    test_tf = transforms.Compose(
+        [
+            transforms.Resize(64),
+            transforms.ToTensor(),
+            normalize,
+        ]
+    )
 
     train_dir = os.path.join(data_root, "train")
-    val_dir   = os.path.join(data_root, "val")
+    val_dir = os.path.join(data_root, "val")
 
     # 1) Train dataset from folder structure
     train_ds = datasets.ImageFolder(train_dir, transform=train_tf)
@@ -133,7 +146,7 @@ def get_tiny_imagenet_loaders(data_root: str,
     # 2) Val dataset from annotations (no ImageFolder here)
     val_ds = TinyImageNetValDataset(val_dir, class_to_idx, transform=test_tf)
 
-    use_pin = (device.type == "cuda")
+    use_pin = device.type == "cuda"
 
     train_loader = DataLoader(
         train_ds,

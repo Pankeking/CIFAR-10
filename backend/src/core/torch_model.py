@@ -13,7 +13,9 @@ from core.torch_train import evaluate, train_one_epoch
 
 
 class TorchModel(nn.Module):
-    def __init__(self, in_channels: int = 3, num_classes: int = 10, base_channels: int = 32):
+    def __init__(
+        self, in_channels: int = 3, num_classes: int = 10, base_channels: int = 32
+    ):
         super().__init__()
         self.dataset_name: Optional[str] = None
         self.device = torch.device("cpu")
@@ -34,19 +36,15 @@ class TorchModel(nn.Module):
             nn.Conv2d(C_in, C_out, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(C_out),
             nn.ReLU(inplace=True),
-
             ResBlock(C_out, C_out),
             ResBlock(C_out, C_out * 2, stride=2),
-
             ResBlock(C_out * 2, C_out * 2, stride=2),
             ResBlock(C_out * 2, C_out * 4, stride=2),
             #
             ResBlock(C_out * 4, C_out * 4),
             ResBlock(C_out * 4, C_out * 8, stride=2),
-
             ResBlock(C_out * 8, C_out * 8),
             ResBlock(C_out * 8, C_out * 8, stride=2),
-
             nn.AdaptiveAvgPool2d(1),
         )
 
@@ -87,22 +85,29 @@ class TorchModel(nn.Module):
 
     # -------------------- TRAIN / EVAL -------------------- #
 
-    def train_torch(self,
-                    epochs: int,
-                    train_loader: DataLoader,
-                    optimizer,
-                    optimizer_config,
-                    device,
-                    metrics: bool = False):
+    def train_torch(
+        self,
+        epochs: int,
+        train_loader: DataLoader,
+        optimizer,
+        optimizer_config,
+        device,
+        metrics: bool = False,
+    ):
         self.train()
         for epoch in range(epochs):
-            if hasattr(optimizer_config, "start_epoch_decay") and epoch >= optimizer_config.start_epoch_decay:
+            if (
+                hasattr(optimizer_config, "start_epoch_decay")
+                and epoch >= optimizer_config.start_epoch_decay
+            ):
                 decay_epochs = epoch - optimizer_config.start_epoch_decay + 1
-                lr_multiplier = optimizer_config.decay_rate ** decay_epochs
+                lr_multiplier = optimizer_config.decay_rate**decay_epochs
                 for param_group in optimizer.param_groups:
                     param_group["lr"] = optimizer_config.learning_rate * lr_multiplier
 
-            train_loss, train_acc = train_one_epoch(self, train_loader, optimizer, device)
+            train_loss, train_acc = train_one_epoch(
+                self, train_loader, optimizer, device
+            )
             if metrics:
                 print(f"Epoch {epoch}: Loss={train_loss:.4f}, Acc={train_acc:.4f}")
 
@@ -171,7 +176,9 @@ class TorchModel(nn.Module):
         dummy = torch.zeros(1, 3, H, W)
         _ = self(dummy)
 
-        missing, unexpected = self.load_state_dict(ckpt["model_state_dict"], strict=False)
+        missing, unexpected = self.load_state_dict(
+            ckpt["model_state_dict"], strict=False
+        )
 
         if missing:
             print(f"Missing keys when loading: {missing}")
@@ -180,8 +187,9 @@ class TorchModel(nn.Module):
 
         print(f"Torch model loaded from {full_path} with dataset {self.dataset_name}")
 
-
     def to(self, device):
-        self.device = device if isinstance(device, torch.device) else torch.device(device)
+        self.device = (
+            device if isinstance(device, torch.device) else torch.device(device)
+        )
         super().to(self.device)
         return self

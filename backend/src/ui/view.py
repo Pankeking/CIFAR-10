@@ -54,8 +54,16 @@ def run_view(model_filename: str, model_cls, start_index: int = 0) -> None:
     # 2) Class names
     if dataset_name == "cifar10":
         class_names = [
-            "airplane", "automobile", "bird", "cat", "deer",
-            "dog", "frog", "horse", "ship", "truck"
+            "airplane",
+            "automobile",
+            "bird",
+            "cat",
+            "deer",
+            "dog",
+            "frog",
+            "horse",
+            "ship",
+            "truck",
         ]
         assert num_classes == 10
     elif dataset_name == "tiny_imagenet":
@@ -92,8 +100,8 @@ def run_view(model_filename: str, model_cls, start_index: int = 0) -> None:
             break
 
         # 4) Run model on single sample
-        x_single = x_test_norm[idx:idx + 1]          # (1, C, H, W)
-        logits = model.predict_logits(x_single)[0]   # (num_classes,)
+        x_single = x_test_norm[idx : idx + 1]  # (1, C, H, W)
+        logits = model.predict_logits(x_single)[0]  # (num_classes,)
         probs = softmax(logits[None, :])[0]
 
         pred_class = int(np.argmax(probs))
@@ -105,9 +113,19 @@ def run_view(model_filename: str, model_cls, start_index: int = 0) -> None:
         plt.figure(figsize=(6, 4))
         plt.imshow(img, interpolation="nearest")
         plt.axis("off")
-        title_true = class_names[true_class] if true_class < len(class_names) else str(true_class)
-        title_pred = class_names[pred_class] if pred_class < len(class_names) else str(pred_class)
-        plt.title(f"{dataset_name} | idx {idx} | true: {title_true} | pred: {title_pred}")
+        title_true = (
+            class_names[true_class]
+            if true_class < len(class_names)
+            else str(true_class)
+        )
+        title_pred = (
+            class_names[pred_class]
+            if pred_class < len(class_names)
+            else str(pred_class)
+        )
+        plt.title(
+            f"{dataset_name} | idx {idx} | true: {title_true} | pred: {title_pred}"
+        )
         plt.show(block=False)
 
         # 6) Console info

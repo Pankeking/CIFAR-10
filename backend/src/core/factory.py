@@ -21,26 +21,28 @@ def build_model(backend: str, optimizer: Optimizer, loss_mode: LossMode):
 
 def build_torch_optimizer(model, optimizer_config):
     params = list(model.parameters())
-    
+
     if len(params) == 0:
-        raise RuntimeError("Model has no parameters! Make sure lazy initialization has completed.")
-    
+        raise RuntimeError(
+            "Model has no parameters! Make sure lazy initialization has completed."
+        )
+
     if optimizer_config.optimizer_mode == OptimizerMode.ADAM:
         optimizer = optim.Adam(
             params,
             lr=optimizer_config.learning_rate,
             weight_decay=optimizer_config.weight_decay,
             betas=(optimizer_config.beta1, optimizer_config.beta2),
-            eps=optimizer_config.epsilon
+            eps=optimizer_config.epsilon,
         )
     elif optimizer_config.optimizer_mode == OptimizerMode.SGD:
         optimizer = optim.SGD(
             params,
             lr=optimizer_config.learning_rate,
             weight_decay=optimizer_config.weight_decay,
-            momentum=0.9
+            momentum=0.9,
         )
     else:
         raise ValueError(f"Unsupported optimizer: {optimizer_config.optimizer_mode}")
-    
+
     return optimizer

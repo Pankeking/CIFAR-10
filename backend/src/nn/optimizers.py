@@ -9,6 +9,7 @@ class OptimizerMode(Enum):
     ADAM = "adam"
     SGD = "sgd"
 
+
 class Optimizer:
     def __init__(
         self,
@@ -19,7 +20,7 @@ class Optimizer:
         decay_rate: float = 0.99,
         beta1: float = 0.9,
         beta2: float = 0.999,
-        epsilon: float = 1e-8
+        epsilon: float = 1e-8,
     ):
         self.optimizer_mode = optimizer_mode
         self.learning_rate = learning_rate
@@ -36,16 +37,14 @@ class Optimizer:
         self.v: list[np.ndarray] | None = None
         self.t: int = 0
 
-
     def step_epoch(self) -> None:
         """Update internal learning rate based on epoch and schedule."""
         if self.epoch < self.start_epoch_decay:
             self.learning_rate = self.base_learning_rate
         else:
             k = self.epoch - self.start_epoch_decay
-            self.learning_rate = self.base_learning_rate * (self.decay_rate ** k)
+            self.learning_rate = self.base_learning_rate * (self.decay_rate**k)
         self.epoch += 1
-
 
     def step(self, layers: list[Layer]) -> None:
         weights = []
@@ -61,14 +60,16 @@ class Optimizer:
         else:
             raise ValueError(f"Invalid optimizer mode: {self.optimizer_mode}")
 
-
-    def step_sgd(self, weights: list[np.ndarray], gradients: list[np.ndarray]) -> list[np.ndarray]:
+    def step_sgd(
+        self, weights: list[np.ndarray], gradients: list[np.ndarray]
+    ) -> list[np.ndarray]:
         for weight, gradient in zip(weights, gradients):
             g_reg = gradient + self.weight_decay * weight
             weight -= self.learning_rate * g_reg
-    
 
-    def step_adam(self, weights: list[np.ndarray], gradients: list[np.ndarray]) -> list[np.ndarray]:
+    def step_adam(
+        self, weights: list[np.ndarray], gradients: list[np.ndarray]
+    ) -> list[np.ndarray]:
         # Initialize moment vectors on first call
         if self.m is None or self.v is None:
             self.m = [np.zeros_like(w) for w in weights]
@@ -86,11 +87,11 @@ class Optimizer:
             # Update biased first moment estimate
             m = self.beta1 * m + (1.0 - self.beta1) * g_reg
             # Update biased second raw moment estimate
-            v = self.beta2 * v + (1.0 - self.beta2) * (g_reg ** 2)
+            v = self.beta2 * v + (1.0 - self.beta2) * (g_reg**2)
 
             # Bias-corrected first and second moment estimates
-            m_hat = m / (1.0 - self.beta1 ** self.t)
-            v_hat = v / (1.0 - self.beta2 ** self.t)
+            m_hat = m / (1.0 - self.beta1**self.t)
+            v_hat = v / (1.0 - self.beta2**self.t)
 
             # Parameter update
             w -= self.learning_rate * m_hat / (np.sqrt(v_hat) + self.epsilon)
@@ -98,4 +99,3 @@ class Optimizer:
             # Store updated state and weight
             self.m[i] = m
             self.v[i] = v
-
